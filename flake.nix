@@ -1,6 +1,6 @@
 {
 inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
     flake-utils = {
         url = "github:numtide/flake-utils";
         inputs.system.follows = "systems";
@@ -24,22 +24,22 @@ outputs = { self, nixpkgs, flake-utils, ... }:
                 nativeBuildInputs = with pkgs; [
                     bashInteractive
                 ];
-                buildInputs = with pkgs; [
+                buildInputs = [
                     (pkgs.python312.withPackages(ps: with ps;[
+						pip
                         pylint
                         pyside6
                         numpy
                         matplotlib
-                        pandas
-                        pyyaml
-                        psutil
-                        pydantic
+						# (opencv-python.override {enableGtk3 = true;})
 						(opencv4.override {enableGtk3 = true;})
+						scikit-learn
+						streamlit
                     ]))
                 ];
-                shellHook = ''
-                '';
                 LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath libs}";
+				shellHook = ''
+				'';
             };
         }
     );

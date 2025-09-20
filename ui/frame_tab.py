@@ -1,40 +1,58 @@
 import cv2
 from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout
 from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QSize
+
+from ui.workflow_widget import WorkflowWidget
+from utils.node_manager import NodeManager
+from utils.video_handler import VideoManager, convert_cv_to_qt
 
 class FrameTabWidget(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, video_manager: VideoManager, parent=None):
         super().__init__(parent)
-        
-        main_layout = QHBoxLayout(self)
+
+        self.node_manager = NodeManager()
+
+        self.video_manager = video_manager
+        self.org_img_size = QSize(0, 0)
+        self.processed_img_size = QSize(0, 0)
+
+        self.init_ui()
+
+        self.video_manager.frame_ready.connect(self.update_frame)
+
+    def init_ui(self):
+        main_layout = QVBoxLayout(self)
+
+
+        frame_widget = QWidget()
+        frame_layout = QHBoxLayout(frame_widget)
+        main_layout.addWidget(frame_widget, 1)
+
+        ##############################
+        # Frames:
+        ##############################
         self.original_frame_label = QLabel("Original Frame")
         self.original_frame_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.original_frame_label.setStyleSheet("border: 1px solid #444444; background-color: #1a1a1a;")
+        self.org_img_size = self.original_frame_label.size()
         
         self.processed_frame_label = QLabel("Processed Subimage")
         self.processed_frame_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.processed_frame_label.setStyleSheet("border: 1px solid #444444; background-color: #1a1a1a;")
+        self.processed_img_size = self.processed_frame_label.size()
         
-        main_layout.addWidget(self.original_frame_label, 1)
-        main_layout.addWidget(self.processed_frame_label, 1)
+        frame_layout.addWidget(self.original_frame_label, 1)
+        frame_layout.addWidget(self.processed_frame_label, 1)
 
-    def display_frame(self, frame):
-        """
-        Converts an OpenCV frame (NumPy array) and displays it.
-        """
-        if frame is not None:
-            # Convert the frame to RGB format
-            rgb_image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            h, w, ch = rgb_image.shape
-            bytes_per_line = ch * w
-            
-            # Convert to QImage and QPixmap
-            q_image = QImage(rgb_image.data, w, h, bytes_per_line, QImage.Format.Format_RGB888)
-            pixmap = QPixmap.fromImage(q_image)
+        ##############################
+        # Workflow:
+        ##############################
+        workflow_widget = WorkflowWidget(self.node_manager)
+        main_layout.addWidget(workflow_widget, 1)
 
-            # Scale the pixmap to fit the label, while maintaining aspect ratio
-            pixmap_scaled = pixmap.scaled(self.original_frame_label.size(), Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-            
-            # Set the pixmap on the original frame label
-            self.original_frame_label.setPixmap(pixmap_scaled)
+    def update_frame(self, frame):
+        qimg = convert_cv_to_qt(frame)
+        pixmap = QPixmap.fromImage(qimg)
+        pixmap_scaled = pixmap.scaled(self.org_img_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
+        self.original_frame_label.setPixmap(pixmap_scaled)

@@ -1,8 +1,17 @@
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QPushButton, QLabel, QLineEdit
 
+
 class StyledButton(QPushButton):
-    def __init__(self, text="", parent=None):
+
+    def __init__(self, text: str = "", icon_names: list[str] = [], parent=None):
         super().__init__(text, parent)
+        self.icons = []
+        for icon_name in icon_names:
+            icon = QIcon("assets/icons/" + icon_name)
+            self.icons.append(icon)
+        self.setIcon(self.icons[0])
+
         self.setStyleSheet("""
             QPushButton {
                 background-color: #3d3d3d;
