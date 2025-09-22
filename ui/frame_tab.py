@@ -1,17 +1,13 @@
-import cv2
-from PySide6.QtWidgets import QWidget, QLabel, QVBoxLayout, QHBoxLayout
+from PySide6.QtWidgets import QGraphicsView, QWidget, QLabel, QVBoxLayout, QHBoxLayout
 from PySide6.QtGui import QImage, QPixmap
 from PySide6.QtCore import Qt, QSize
 
-from ui.workflow_widget import WorkflowWidget
-from utils.node_manager import NodeManager
+from ui.workflow_widget import WorkflowScene, WorkflowWidget
 from utils.video_handler import VideoManager, convert_cv_to_qt
 
 class FrameTabWidget(QWidget):
     def __init__(self, video_manager: VideoManager, parent=None):
         super().__init__(parent)
-
-        self.node_manager = NodeManager()
 
         self.video_manager = video_manager
         self.org_img_size = QSize(0, 0)
@@ -48,7 +44,7 @@ class FrameTabWidget(QWidget):
         ##############################
         # Workflow:
         ##############################
-        workflow_widget = WorkflowWidget(self.node_manager)
+        workflow_widget = WorkflowWidget(self.video_manager)
         main_layout.addWidget(workflow_widget, 1)
 
     def update_frame(self, frame):

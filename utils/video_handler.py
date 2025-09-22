@@ -13,6 +13,7 @@ class VideoManager(QObject):
         self.timer = QTimer()
         self.timer.timeout.connect(self.get_frame)
         self.current_frame_idx: int = 0
+        self.current_frame = None
         self.n_frames: int = 0
         self.loop_mode: bool = True
 
@@ -30,7 +31,11 @@ class VideoManager(QObject):
         ret, frame = self.video_capture.read()
         if not ret:
             return self.stop()
+        self.current_frame = frame
         self.frame_ready.emit(frame)
+
+    def get_current_frame(self) -> MatLike | None:
+        return self.current_frame
 
     def stop(self):
         self.timer.stop()

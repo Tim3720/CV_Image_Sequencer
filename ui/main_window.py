@@ -4,7 +4,6 @@ from PySide6.QtCore import Qt, Slot, QTimer
 
 from .video_tab import VideoPlayerTab
 from .frame_tab import FrameTabWidget
-from .workflow_widget import WorkflowWidget
 from utils.video_handler import VideoManager
 
 class MainWindow(QMainWindow):
