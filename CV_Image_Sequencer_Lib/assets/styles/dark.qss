@@ -1,0 +1,110 @@
+QWidget {
+	background-color: #2b2b2b;
+	color: #f0f0f0;
+	font-size: 14px;
+}
+QMainWindow {
+	background-color: #2b2b2b;
+}
+QFrame, QWidget#WorkflowWidget, QWidget#FrameTabWidget {
+	background-color: #333333;
+	border: 1px solid #444444;
+}
+
+QTabWidget::pane {
+	border: 1px solid #444444;
+	background: #2b2b2b;
+	top: -1px;
+}
+QTabBar {
+	background: transparent;
+}
+
+QTabBar::tab {
+	background-color: #3d3d3d;
+	color: #f0f0f0;
+	padding: 8px 16px;
+	border-top: 1px solid #444444;
+	border-left: 1px solid #444444;
+	border-right: 1px solid #444444;
+	border-bottom: none;
+}
+QTabBar::tab:selected {
+	background-color: #2b2b2b;
+	border-top: 2px solid #5d85c7;
+	border-bottom: none;
+}
+QTabBar::tab:!selected {
+	background-color: #3d3d3d;
+}
+
+QTabBar::close-button {
+    image:
+	url(CV_Image_Sequencer_Lib/assets/icons/close_small.png);   
+    subcontrol-position: right;
+    margin: 2px;
+}
+
+
+
+
+QMenuBar {
+	background-color: #333333;
+	color: #f0f0f0;
+}
+QMenuBar::item {
+	background-color: transparent;
+}
+QMenuBar::item:selected {
+	background-color: #555555;
+}
+QMenu {
+	background-color: #333333;
+	border: 1px solid #555555;
+}
+QMenu::item {
+	padding: 5px 20px 5px 20px;
+	color: #f0f0f0;
+}
+QMenu::item:selected {
+	background-color: #555555;
+}
+
+
+/* Primary button */
+QPushButton#Primary {
+	background-color: #3d3d3d;
+	color: #f0f0f0;
+	border: 1px solid #5d5d5d;
+	border-radius: 6px;
+	padding: 6px 12px;
+	font-size: 14px;
+}
+
+QPushButton#Primary:hover {
+	background-color: #505050;
+	border: 1px solid #5d85c7;   /* subtle blue hover highlight */
+}
+
+QPushButton#Primary:pressed {
+	background-color: #2b2b2b;
+	border: 1px solid #5d85c7;
+}
+
+QPushButton#Primary:disabled {
+	background-color: #2b2b2b;
+	color: #777777;
+	border: 1px solid #3d3d3d;
+}
+
+/* Secondary button */
+QPushButton#SecondaryButton {
+    background-color: transparent;
+    color: #aaaaaa;
+    border: none;
+    padding: 6px 12px;
+}
+
+QPushButton#SecondaryButton:hover {
+    color: #f0f0f0;
+}

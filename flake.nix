@@ -31,10 +31,10 @@ outputs = { self, nixpkgs, flake-utils, ... }:
                         pyside6
                         numpy
                         matplotlib
-						# (opencv-python.override {enableGtk3 = true;})
 						(opencv4.override {enableGtk3 = true;})
 						scikit-learn
 						streamlit
+						pydantic
                     ]))
                 ];
                 LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath libs}";
