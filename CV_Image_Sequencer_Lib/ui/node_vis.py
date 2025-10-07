@@ -15,7 +15,7 @@ def port_label(text: str) -> QLabel:
     label.setStyleSheet("font-size: 11px; border: none;")
     return label
 
-def port_dropdown(port: OutPut | InPut) -> QFrame: 
+def port_dropdown(port: InPut) -> QFrame: 
         t: type[Enum] = port.data_type.get_model_type()
         widget = QFrame()
         widget.setStyleSheet("background-color: transparent; border: none;")
@@ -46,7 +46,7 @@ def port_dropdown(port: OutPut | InPut) -> QFrame:
         """)
 
         # TODO: Connect dropdown changed to node input
-        # dropdown.currentTextChanged.connect()
+        dropdown.currentTextChanged.connect(lambda x: port.data_update(port.data_type.from_string(x)))
 
         layout.addWidget(label)
         layout.addWidget(dropdown)

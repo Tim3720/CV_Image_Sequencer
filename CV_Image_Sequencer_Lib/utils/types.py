@@ -20,6 +20,9 @@ class TypeBaseModel(BaseModel, Generic[T]):
     def get_default_value(self) -> T | None:
         return None
 
+    def from_string(self, value: str) -> object:
+        return None
+
 
 class ColorCode3C23C(Enum):
     """Color codes for conversion from a 3 channel image to a 3 channel image."""
@@ -57,6 +60,10 @@ class ColorCodeType3C21C(TypeBaseModel[ColorCode3C21C]):
 
     def get_model_type(self) -> type:
         return ColorCode3C21C
+
+    @override
+    def from_string(self, value: str):
+        return ColorCodeType3C21C(value=ColorCode3C21C[value])
 
 
 class Image3CType(TypeBaseModel[np.ndarray]):
