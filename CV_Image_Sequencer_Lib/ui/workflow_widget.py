@@ -75,6 +75,11 @@ class WorkflowManger(QWidget):
                 if len(frames[i].shape) == 2:
                     frames[i] = cv.cvtColor(frames[i], cv.COLOR_GRAY2BGR)
 
+        border_shape = list(frames[0].shape)
+        border_shape[1] = 5
+        border = 50 * np.ones(border_shape, dtype=np.uint8)
+        for i in range(len(frames) - 1):
+            frames[i] = np.concatenate([frames[i], border], 1)
         self.update_frame_signal.emit(np.concatenate(frames, 1))
 
 

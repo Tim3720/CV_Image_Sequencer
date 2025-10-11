@@ -24,7 +24,7 @@ def main():
 
     main_window.show()
 
-    central_widget.video_manager.load_video("/home/tim/Documents/Arbeit/BloodCellsProject/Data/RT_MitotrackOrange_Hoechst_KH7_01202022.avi")
+    central_widget.video_manager.load_video("/home/tim/Documents/Arbeit/BloodCellProject/Data/RT_MitotrackOrange_Hoechst_KH7_01202022.avi")
     
     # Start the event loop
     sys.exit(app.exec())
