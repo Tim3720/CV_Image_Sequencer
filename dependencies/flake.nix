@@ -39,6 +39,7 @@ outputs = { self, nixpkgs, flake-utils, ... }:
                 ];
                 LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath libs}";
 				shellHook = ''
+					export QT_QPA_PLATFORM=xcb
 				'';
             };
         }
