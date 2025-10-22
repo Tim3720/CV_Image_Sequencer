@@ -12,6 +12,7 @@ def main():
     main_window = QMainWindow()
     main_window.setWindowTitle("CV Image Sequencer")
     main_window.setGeometry(0, 0, 1920, 1080)
+    main_window.setFixedSize(1920, 1080)
     # main_window.setGeometry(330, 60, 1260, 960)
 
     central_widget = CVImageSequencerWidget()
@@ -24,8 +25,6 @@ def main():
 
     main_window.show()
 
-    central_widget.video_manager.load_video("/home/tim/Documents/Arbeit/BloodCellProject/Data/RT_MitotrackOrange_Hoechst_KH7_01202022.avi")
-    
     # Start the event loop
     sys.exit(app.exec())
 

@@ -38,13 +38,15 @@ class NodeManager(QObject):
 
         self.nodes.remove(node)
 
-    def connect_nodes(self, o: OutPut, i: InPut):
+    def connect_nodes(self, o: OutPut, i: InPut, run_data_update: bool = True):
         i.connect_output(o)
         if o in self.output_connections:
             self.output_connections[o].append(i)
         else:
             self.output_connections[o] = [i]
-        i.data_update()
+
+        if run_data_update:
+            i.data_update(recompute_data=True)
 
     def disconnect_input(self, i: InPut):
         o = i.connected_output

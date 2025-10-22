@@ -36,6 +36,25 @@ class VideoManager(QObject):
         self.current_frame = frame
         self.frame_ready.emit(frame)
 
+    def get_next_n_frames(self, n):
+        if self.video_capture is None:
+            return 
+        output = [self.current_frame]
+        for i in range(n - 1):
+            new_index = self.current_frame_idx + i
+            if new_index < 0:
+                return
+            if self.loop_mode and new_index >= self.n_frames: # loop mode
+                new_index = 0
+
+            ret, frame = self.video_capture.read()
+            if not ret:
+                return self.stop()
+            output.append(frame)
+        self.video_capture.set(cv.CAP_PROP_POS_FRAMES, self.current_frame_idx)
+        return output
+
+
     def get_current_frame(self) -> MatLike | None:
         return self.current_frame
 
@@ -49,27 +68,16 @@ class VideoManager(QObject):
     def load_video(self, path: str):
         try:
             self.video_capture = cv.VideoCapture(path)
-
             if not self.video_capture.isOpened():
                 self.video_capture.release()
                 self.video_capture = None
                 # TODO: Warning
                 return 
 
-            # ret, preview = self.video_capture.read()
-            # if not ret:
-            #     self.video_capture.release()
-            #     self.video_capture = None
-            #     return 
-            #
-            # self.frame_ready.emit(preview)
-
             self.get_frame()
-
-            # self.video_capture.set(cv.CAP_PROP_POS_FRAMES, 0)
             self.n_frames = int(self.video_capture.get(cv.CAP_PROP_FRAME_COUNT))
-            # self.current_frame_idx = 0
-        except:
+        except Exception as e:
+            print(e)
             pass
 
 def convert_cv_to_qt(image: MatLike) -> QImage:

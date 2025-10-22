@@ -1,92 +1,117 @@
-from typing import Generic, TypeVar, override
+from typing import Any, override
 import cv2 as cv
-from enum import Enum
-from cv2.gapi import BGR2RGB
 import numpy as np
+from dataclasses import dataclass
 
-from pydantic import BaseModel, field_validator
+from .type_base import DictType, Type
 
-T = TypeVar("T")
-class TypeBaseModel(BaseModel, Generic[T]):
-    value: T | None
-
-    model_config = {
-        "arbitrary_types_allowed": True
-    }
-
-    def get_model_type(self) -> type:
-        return type(T)
-
-    def get_default_value(self) -> T | None:
-        return None
-
-    def from_string(self, value: str) -> object:
-        return None
-
-
-class ColorCode3C23C(Enum):
-    """Color codes for conversion from a 3 channel image to a 3 channel image."""
-    BGR2RGB = cv.COLOR_BGR2RGB
-
-
-class ColorCode3C21C(Enum):
+@dataclass
+class ColorCode3C21C(DictType):
     """Color codes for conversion from a 3 channel image to a 1 channel image."""
-    BGR2GRAY = 0
-    B2GRAY = 1
-    G2GRAY = 2
-    R2GRAY = 3
+    value_dict = {
+                "BGR2GRAY": 0,
+                "B2GRAY": 1,
+                "G2GRAY": 2,
+                "R2GRAY": 3,
+                }
+    value: str | None = None
+    default_value = "BGR2GRAY"
 
-class ColorCode1C23C(Enum):
-    """Color codes for conversion from a 1 channel image to a 3 channel image."""
-    GRAY2BGR = cv.COLOR_GRAY2BGR
-
-
-class ColorCodeType3C23C(TypeBaseModel[ColorCode3C23C]):
-    value: ColorCode3C23C | None = None
-
-    @override
-    def get_default_value(self) -> ColorCode3C23C | None:
-        return ColorCode3C23C.BGR2RGB
-
-    def get_model_type(self) -> type:
-        return ColorCode3C23C
-
-class ColorCodeType3C21C(TypeBaseModel[ColorCode3C21C]):
-    value: ColorCode3C21C | None = None
-
-    @override
-    def get_default_value(self) -> ColorCode3C21C | None:
-        return ColorCode3C21C.BGR2GRAY
-
-    def get_model_type(self) -> type:
-        return ColorCode3C21C
-
-    @override
-    def from_string(self, value: str):
-        return ColorCodeType3C21C(value=ColorCode3C21C[value])
+    def get_default_value(self):
+        return ColorCode3C21C(value=self.default_value)
 
 
-class Image3CType(TypeBaseModel[np.ndarray]):
+@dataclass
+class ThresholdTypes(DictType):
+    value_dict = {
+                "Binary": cv.THRESH_BINARY,
+                "Triangle": cv.THRESH_TRIANGLE,
+                "Otsu": cv.THRESH_OTSU,
+                }
+    value: str | None = None
+    default_value = "Binary"
+
+    def get_default_value(self):
+        return ThresholdTypes(value=self.default_value)
+
+
+@dataclass
+class Image3C(Type):
     value: np.ndarray | None = None
+    data_type: type = np.ndarray
 
-    @field_validator("value")
-    def check_channels(cls, arr):
-        if arr.ndim != 3 or arr.shape[2] != 3:
+    def __post_init__(self):
+        if self.value is None:
+            return
+        if self.value.ndim != 3 or self.value.shape[2] != 3:
             raise ValueError("Expected an image with 3 channels")
-        return arr
 
-    def get_model_type(self) -> type:
-        return np.ndarray
-
-
-class GrayScaleImageType(TypeBaseModel[np.ndarray]):
+@dataclass
+class Image1C(Type):
     value: np.ndarray | None = None
+    data_type: type = np.ndarray
 
-    @field_validator("value")
-    def check_channels(cls, arr):
-        if arr.ndim == 3 and arr.shape[2] != 1:
-            raise ValueError("Expected an Grayscale image with 1 channel")
-        return arr
+    def __post_init__(self):
+        if self.value is None:
+            return
+        if self.value.ndim == 3 and self.value.shape[2] != 1:
+            raise ValueError("Expected an image with 3 channels")
 
-    def get_model_type(self) -> type:
-        return np.ndarray
+
+@dataclass
+class Scalar(Type):
+    default_value = 0
+    min_value: Any | None = None
+    max_value: Any | None = None
+
+    def __post_init__(self):
+        if self.value is None:
+            return
+        if not self.min_value is None and self.value < self.min_value:
+            raise ValueError(f"Value {self.value} is out ouf bounds for Scalar")
+        if not self.max_value is None and self.value > self.max_value:
+            raise ValueError(f"Value {self.value} is out ouf bounds for Scalar")
+
+    @override
+    def set_value(self, value):
+        if not self.min_value is None and value < self.min_value:
+            raise ValueError(f"Value {value} is out ouf bounds for Scalar")
+        if not self.max_value is None and value > self.max_value:
+            raise ValueError(f"Value {value} is out ouf bounds for Scalar")
+        self.value = value
+        return self
+
+    def set_value_from_string(self, value: str):
+        return self.set_value(int(value))
+
+
+@dataclass
+class Float(Scalar):
+    value: float | None = None
+    data_type: type = float
+    default_value = 0
+    min_value: float | None = None
+    max_value: float | None = None
+
+    @override
+    def get_default_value(self) -> object:
+        return Float(value=self.default_value)
+
+    def set_value_from_string(self, value: str):
+        return self.set_value(float(value))
+
+
+
+@dataclass
+class Int(Scalar):
+    value: int | None = None
+    data_type: type = int
+    default_value = 0
+    min_value: int | None = None
+    max_value: int | None = None
+
+    def get_default_value(self) -> object:
+        return Int(value=self.default_value)
+
+    def set_value_from_string(self, value: str):
+        return self.set_value(int(value))

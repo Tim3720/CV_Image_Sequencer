@@ -13,15 +13,11 @@ class CVImageSequencerWidget(QWidget):
         self.video_manager = VideoManager()
 
         self.init_ui()
+        self.video_manager.load_video("/home/tim/Documents/Arbeit/BloodCellsProject/Data/RT_MitotrackOrange_Hoechst_KH7_01202022.avi")
 
     def init_ui(self):
         main_layout = QHBoxLayout(self)
 
-        # # Left panel for workflows
-        # self.workflow_widget = WorkflowWidget()
-        # main_layout.addWidget(self.workflow_widget, 1)
-
-        # Right panel for tabs (video and frames)
         self.tab_widget = TabWidget(self.video_manager)
 
         main_layout.addWidget(self.tab_widget, 4)

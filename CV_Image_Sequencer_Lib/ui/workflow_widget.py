@@ -10,9 +10,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+# from CV_Image_Sequencer_Lib.core.workflow import Threshold
 from CV_Image_Sequencer_Lib.ui.workflow_editor import WorkflowEditor
 
-from ..core.node import ChangeColorNode, GrayScaleNode, InPut, Node, OutPut, SourceNode
+from ..core.node import ABSDiffNode, ChannelSplitNode, GrayScaleNode, InPut, Node, OutPut, SourceNode, ThresholdNode
 from ..core.node_manager import NodeManager
 from ..utils.video_manager import VideoManager
 from .node_vis import Connection, IOPort, NodeVis
@@ -37,11 +38,11 @@ class WorkflowManger(QWidget):
         self.scene.setSceneRect(self.rect())
         self.view = WorkflowView(self.scene)
 
-        self.editor = WorkflowEditor()
-        self.editor.finished_signal.connect(lambda: self.stacked.setCurrentIndex(0))
+        # self.editor = WorkflowEditor()
+        # self.editor.finished_signal.connect(lambda: self.stacked.setCurrentIndex(0))
 
         self.stacked.addWidget(self.view)
-        self.stacked.addWidget(self.editor)
+        # self.stacked.addWidget(self.editor)
         self.stacked.setCurrentIndex(0)
 
         main_layout.addWidget(self.stacked)
@@ -52,10 +53,10 @@ class WorkflowManger(QWidget):
     def update_frame(self, node: Node):
         frames: list[np.ndarray] = []
         for i in node.inputs:
-            if i.show_input and type(i.data.value) == np.ndarray:
+            if i.show_input and i.data.data_type == np.ndarray and i.data.value is not None:
                 frames.append(i.data.value)
         for o in node.outputs:
-            if o.show_output and type(o.data.value) == np.ndarray:
+            if o.show_output and o.data.data_type == np.ndarray and o.data.value is not None:
                 frames.append(o.data.value)
 
         self.node_viewing = node
@@ -80,7 +81,8 @@ class WorkflowManger(QWidget):
         border = 50 * np.ones(border_shape, dtype=np.uint8)
         for i in range(len(frames) - 1):
             frames[i] = np.concatenate([frames[i], border], 1)
-        self.update_frame_signal.emit(np.concatenate(frames, 1))
+        full_frame = np.concatenate(frames, 1)
+        self.update_frame_signal.emit(full_frame)
 
 
 class WorkflowScene(QGraphicsScene):
@@ -98,11 +100,22 @@ class WorkflowScene(QGraphicsScene):
         self.connections: list[Connection] = []
 
         # TODO: Remove test:
-        self.add_node(SourceNode(self.video_manager))
-        self.add_node(GrayScaleNode())
-        self.add_node(ChangeColorNode())
-        self.node_visulisations[1].setPos(200, 100)
-        self.node_visulisations[2].setPos(200, 0)
+        source_node = SourceNode(self.video_manager, 3)
+        grayscale_node = GrayScaleNode()
+        self.add_node(source_node)
+        self.add_node(grayscale_node)
+        self.add_node(ThresholdNode())
+        self.add_node(ChannelSplitNode())
+        self.add_node(ABSDiffNode())
+
+        self.node_visulisations[0].setPos(-600, 150)
+        self.node_visulisations[1].setPos(-300, 150)
+        self.node_visulisations[2].setPos(100, 250)
+        self.node_visulisations[3].setPos(100, 0)
+
+        self.connect_nodes(self.node_visulisations[0].output_ports[0],
+                           self.node_visulisations[1].input_ports[0], run_data_update=False)
+        # self.node_visulisations[2].setPos(200, 0)
 
     def add_node(self, node: Node):
         self.node_manager.add_node(node)
@@ -120,6 +133,31 @@ class WorkflowScene(QGraphicsScene):
             i.port_press_signal.connect(self.port_clicked)
         for o in node_vis.output_ports:
             o.port_press_signal.connect(self.port_clicked)
+
+    def connect_nodes(self, start: IOPort, stop: IOPort, connection: Connection | None =
+                      None, run_data_update: bool = True) -> bool:
+        if (
+            isinstance(stop.port, InPut)
+            and isinstance(start.port, OutPut)
+            and stop.port.connected_output is None
+        ):
+            self.node_manager.connect_nodes(start.port, stop.port, run_data_update)
+        elif (
+            isinstance(stop.port, OutPut)
+            and isinstance(start.port, InPut)
+            and start.port.connected_output is None
+        ):
+            self.node_manager.connect_nodes(stop.port, start.port, run_data_update)
+        else:
+            return False
+
+        if connection is None:
+            connection = Connection(start)
+            self.addItem(connection)
+        connection.connect_path(stop)
+        self.connections.append(connection)
+        connection.delete_connection_sigal.connect(self.delete_connection)
+        return True
 
     @Slot()
     def port_clicked(self):
@@ -143,26 +181,9 @@ class WorkflowScene(QGraphicsScene):
             and self.start_port.parent_node != port.parent_node
             and self.start_port.port.data_type == port.port.data_type
         ):
-            if (
-                isinstance(port.port, InPut)
-                and isinstance(self.start_port.port, OutPut)
-                and port.port.connected_output is None
-            ):
-                self.node_manager.connect_nodes(self.start_port.port, port.port)
-            elif (
-                isinstance(port.port, OutPut)
-                and isinstance(self.start_port.port, InPut)
-                and self.start_port.port.connected_output is None
-            ):
-                self.node_manager.connect_nodes(port.port, self.start_port.port)
-            else:
-                return
-
-            self.temp_connection.connect_path(port)
-            self.connections.append(self.temp_connection)
-            self.temp_connection.delete_connection_sigal.connect(self.delete_connection)
-            self.temp_connection = None
-            self.start_port = None
+            if self.connect_nodes(self.start_port, port, self.temp_connection):
+                self.temp_connection = None
+                self.start_port = None
 
     @Slot()
     def delete_connection(self):

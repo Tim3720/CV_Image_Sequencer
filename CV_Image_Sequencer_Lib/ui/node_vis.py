@@ -2,21 +2,23 @@ from enum import Enum
 from PySide6.QtWidgets import (QFrame, QGraphicsEllipseItem, QGraphicsItem, QGraphicsPathItem,
                                QGraphicsProxyWidget, QGraphicsRectItem, QGraphicsScene,
                                QGraphicsTextItem, QGraphicsView, QHBoxLayout, QLineEdit,
-                               QPushButton, QWidget, QLabel, QVBoxLayout, QComboBox)
+                               QPushButton, QSpinBox, QWidget, QLabel, QVBoxLayout, QComboBox)
 from PySide6.QtGui import QFont, QPainterPathStroker, QPen, QBrush, QColor, QPainterPath, qRgba
 from PySide6.QtCore import QObject, QPointF, Qt, Signal
 
 from CV_Image_Sequencer_Lib.ui.settings_vis import SettingsVis
-
 from ..core.node import Node, OutPut, InPut
+from ..utils.types import DictType, Scalar
 
 def port_label(text: str) -> QLabel:
     label = QLabel(text)
     label.setStyleSheet("font-size: 11px; border: none;")
     return label
 
-def port_dropdown(port: InPut) -> QFrame: 
-        t: type[Enum] = port.data_type.get_model_type()
+def port_dropdown(port: InPut | OutPut) -> QFrame: 
+        if not issubclass(port.data_type, DictType): # enum like
+            raise ValueError("Wrong type passed to port_dropdown")
+
         widget = QFrame()
         widget.setStyleSheet("background-color: transparent; border: none;")
         layout = QHBoxLayout(widget)
@@ -27,11 +29,16 @@ def port_dropdown(port: InPut) -> QFrame:
         label = port_label(port.label)
 
         dropdown = QComboBox()
-        for option in t:
-            dropdown.addItem(option.name, option)
-        default = port.data_type.get_default_value() 
-        if isinstance(default, Enum):
-            dropdown.setCurrentText(default.name)
+        for option in port.data_type.value_dict.keys():
+            dropdown.addItem(option, option)
+
+        if port.data_type.value is not None:
+            dropdown.setCurrentText(port.data_type.value)
+        else:
+            default = port.data_type.default_value
+            if default is not None:
+                dropdown.setCurrentText(default)
+
         dropdown.setStyleSheet("""
                 QComboBox {
                     font-size: 11px;
@@ -45,20 +52,57 @@ def port_dropdown(port: InPut) -> QFrame:
                 }
         """)
 
-        # TODO: Connect dropdown changed to node input
-        dropdown.currentTextChanged.connect(lambda x: port.data_update(port.data_type.from_string(x)))
+        if isinstance(port, InPut):
+            dropdown.currentTextChanged.connect(lambda x:
+                                                port.data_update(port.data.set_value(x)))
+        else:
+            dropdown.setEditable(False)
 
         layout.addWidget(label)
         layout.addWidget(dropdown)
         return widget
 
+def port_line_edit(port: InPut | OutPut) -> QFrame:
+    if not issubclass(port.data_type, Scalar): # enum like
+        raise ValueError("Wrong type passed to port_line_edit")
+    widget = QFrame()
+    widget.setStyleSheet("background-color: transparent; border: none;")
+    layout = QHBoxLayout(widget)
+    layout.setContentsMargins(0, 0, 0, 0)
+    layout.setSpacing(4)
+
+    label = port_label(port.label)
+
+    edit = QLineEdit()
+    edit.setFixedWidth(50)
+
+    edit.setStyleSheet("""
+            QLineEdit {
+                font-size: 11px;
+                color: white;
+                border: 2px solid #333;
+            }
+    """)
+
+    if isinstance(port, InPut):
+        layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(edit, alignment=Qt.AlignmentFlag.AlignRight)
+        edit.textChanged.connect(lambda x: port.data_update(port.data.set_value_from_string(x)))
+        if port.data.value is not None:
+            edit.setText(str(port.data.value))
+    else:
+        edit.setReadOnly(True)
+        layout.addWidget(edit, alignment=Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignRight)
+        port.computation_finished_signal.connect(lambda x: edit.setText(str(x.value)))
+    return widget
 
 def create_proxy(parent: QGraphicsItem, widget: QWidget, x: float, y: float, w: float, h: float):
     proxy = QGraphicsProxyWidget(parent)
     proxy.setWidget(widget)
     proxy.setGeometry(x, y, w, h)
 
-def create_proxy2(parent: QGraphicsItem, widget: QWidget):
+def create_proxy_no_position(parent: QGraphicsItem, widget: QWidget):
     proxy = QGraphicsProxyWidget(parent)
     proxy.setWidget(widget)
     return proxy
@@ -78,9 +122,12 @@ class IOPort(QObject, QGraphicsEllipseItem):
 
         self.color = QColor("#aaaaaa")
 
-        if issubclass(port.data_type.get_model_type(), Enum):
+        if issubclass(port.data_type, DictType): # enum like
             widget = port_dropdown(port)
-            proxy = create_proxy2(self, widget)
+            proxy = create_proxy_no_position(self, widget)
+        elif issubclass(port.data_type, Scalar):
+            widget = port_line_edit(port)
+            proxy = create_proxy_no_position(self, widget)
         else:
             proxy = QGraphicsTextItem(port.label)
             proxy.setDefaultTextColor(Qt.GlobalColor.white)
@@ -162,13 +209,13 @@ class NodeVis(QObject, QGraphicsRectItem):
         ########################
         ## Inputs/Outputs:
         ########################
-        y = name_rect.rect().y() + name_rect.rect().height() + 10
+        y = name_rect.rect().y() + name_rect.rect().height() + 12
         max_width = name_rect.rect().width()
         for o in self.node.outputs:
             output_port = IOPort(o, self.rect().width(), y,
                                  parent=self, parent_node=self.node)
             self.output_ports.append(output_port)
-            y += output_port.rect().height() + 5
+            y += output_port.rect().height() + 12
             if output_port.width > max_width:
                 max_width = output_port.width
 
@@ -176,7 +223,7 @@ class NodeVis(QObject, QGraphicsRectItem):
             input_port = IOPort(i, 0, y, parent=self,
                                 parent_node=self.node)
             self.input_ports.append(input_port)
-            y += input_port.rect().height() + 5
+            y += input_port.rect().height() + 12
             if input_port.width > max_width:
                 max_width = input_port.width
 

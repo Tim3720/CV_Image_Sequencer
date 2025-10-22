@@ -1,13 +1,10 @@
-from typing import TypeVar
-import numpy as np
 from PySide6.QtCore import QObject, Signal
+from numpy import isin
 
-from ..core.workflow import ChangeColor, GetFrame, GrayScale, Workflow
-from ..utils.types import (ColorCodeType3C23C, GrayScaleImageType, Image3CType,
-TypeBaseModel, ColorCodeType3C21C)
+from ..core.workflow_base import Workflow
+from ..core.workflows import ABSDiff, ChannelSplit, GetFrame, GrayScale, Threshold
+from ..utils.types import (ColorCode3C21C, Float, Image1C, Image3C, Int, ThresholdTypes, Type)
 from ..utils.video_manager import VideoManager
-
-U = TypeVar("U")
 
 class OutPut(QObject):
     """
@@ -19,17 +16,17 @@ class OutPut(QObject):
     computation_finished_signal = Signal(object)
 
     def __init__(
-        self, label: str, output_type: TypeBaseModel[U], show_output: bool = False
+        self, label: str, output_type: Type, show_output: bool = False
     ) -> None:
         super().__init__()
         self.label = label
-        self.data_type = output_type
+        self.data_type = type(output_type)
         self.show_output = show_output
-        self.data: TypeBaseModel = output_type
+        self.data: Type = output_type
 
     def data_updated(self, data):
         """This function can be called by the node when the computation is finished."""
-        if not isinstance(data, type(self.data_type)):
+        if not isinstance(data, self.data_type):
             raise ValueError(
                 f"Wrong datatype passed to output. Expected {self.data_type}, got {type(data)}"
             )
@@ -48,15 +45,15 @@ class InPut(QObject):
     computation_trigger_signal = Signal()
 
     def __init__(
-        self, label: str, input_type: TypeBaseModel[U], show_input: bool = False
+        self, label: str, input_type: Type, show_input: bool = False
     ) -> None:
         super().__init__()
         self.label = label
-        self.data_type = input_type
+        self.data_type = type(input_type)
         self.show_input = show_input
 
         self.connected_output = None
-        self.data: TypeBaseModel = input_type
+        self.data = input_type
 
     def connect_output(self, output: OutPut):
         self.connected_output = output
@@ -68,15 +65,15 @@ class InPut(QObject):
         self.connected_output.computation_finished_signal.disconnect(self.data_update)
         self.connected_output = None
 
-    def data_update(self, data: object | None = None):
+    def data_update(self, data: object | None = None, recompute_data: bool = False):
         if data is None:
-            if self.data.value is not None:
+            if self.data.value is not None and not recompute_data:
                 self.computation_trigger_signal.emit()
             elif (self.connected_output is not None and self.connected_output.data is not
                 None):
                 self.data_update(self.connected_output.data)
             return
-        if not isinstance(data, type(self.data_type)):
+        if not isinstance(data, self.data_type):
             raise ValueError(
                 f"Wrong datatype passed to input. Expected {self.data_type}, got {type(data)}"
             )
@@ -123,10 +120,9 @@ class Node(QObject):
         input_data = []
         for i in self.inputs:
             if i.data is not None and i.data.value is not None:
-                input_data.append(i.data.value)
+                input_data.append(i.data)
             elif i.data is not None:
                 input_data.append(i.data.get_default_value())
-
         output_data = self.workflow.run(input_data)
 
         self.data = output_data
@@ -137,10 +133,13 @@ class Node(QObject):
 
 
 class SourceNode(Node):
-    def __init__(self, video_manager: VideoManager, parent=None) -> None:
-        workflow = GetFrame(video_manager)
+    def __init__(self, video_manager: VideoManager, n_frames: int = 1, parent=None) -> None:
+        workflow = GetFrame(video_manager, n_frames)
+        outputs = []
+        for _ in range(n_frames):
+            outputs.append(OutPut("Frame", Image3C(), True))
         super().__init__(
-            [], [OutPut("Frame", Image3CType(), True)], "Source", workflow, parent=parent
+            [], outputs, "Source", workflow, parent=parent
         )
         video_manager.frame_ready.connect(self.run_workflow)
 
@@ -150,23 +149,65 @@ class GrayScaleNode(Node):
         workflow = GrayScale()
         super().__init__(
             [
-                InPut("RGB", Image3CType(), True),
-                InPut("ColorCode", ColorCodeType3C21C(), False)
+                InPut("RGB", Image3C(), True),
+                InPut("ColorCode", ColorCode3C21C(), False)
             ],
-            [OutPut("Gray", GrayScaleImageType(), True)],
+            [OutPut("Gray", Image1C(), True)],
             "GrayScale",
             workflow,
             parent=parent,
         )
 
 
-class ChangeColorNode(Node):
+class ThresholdNode(Node):
     def __init__(self, parent=None) -> None:
-        workflow = ChangeColor()
+        workflow = Threshold()
         super().__init__(
-            [InPut("Image", Image3CType(), True), InPut("ColorCode", ColorCodeType3C23C(), False)],
-            [OutPut("Image", Image3CType(), True)],
-            "ChangeColor",
+            [
+                InPut("Image", Image1C(), True),
+                InPut("Threshold value", Int(value=100, min_value=0, max_value=255), False),
+                InPut("New Value", Int(value=255, min_value=0, max_value=255), False),
+                InPut("Threshold Type", ThresholdTypes(), False),
+            ],
+            [
+                OutPut("Threshold", Float(), False),
+                OutPut("Image", Image1C(), True),
+            ],
+            "Threshold",
+            workflow,
+            parent=parent,
+        )
+
+
+class ChannelSplitNode(Node):
+    def __init__(self, parent=None) -> None:
+        workflow = ChannelSplit()
+        super().__init__(
+            [
+                InPut("Image", Image3C(), True),
+            ],
+            [
+                OutPut("Blue", Image1C(), True),
+                OutPut("Green", Image1C(), True),
+                OutPut("Red", Image1C(), True),
+            ],
+            "ChannelSplit",
+            workflow,
+            parent=parent,
+        )
+
+class ABSDiffNode(Node):
+    def __init__(self, parent=None) -> None:
+        workflow = ABSDiff()
+        super().__init__(
+            [
+                InPut("Image1", Image1C(), True),
+                InPut("Image2", Image1C(), True),
+            ],
+            [
+                OutPut("Diff", Image1C(), True),
+            ],
+            "ABSDiff",
             workflow,
             parent=parent,
         )

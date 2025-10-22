@@ -21,7 +21,6 @@ class WorkflowTabWidget(QWidget):
     def init_ui(self):
         main_layout = QVBoxLayout(self)
 
-
         frame_widget = QWidget()
         frame_layout = QHBoxLayout(frame_widget)
         main_layout.addWidget(frame_widget, 1)
@@ -29,7 +28,7 @@ class WorkflowTabWidget(QWidget):
         ##############################
         # Frames:
         ##############################
-        self.frame_label = QLabel("Frame")
+        self.frame_label = QLabel("Double click a node to show its in and output")
         self.frame_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.frame_label.setStyleSheet("border: 1px solid #444444; background-color: #1a1a1a;")
         self.frame_label.setFixedHeight(500)
@@ -51,6 +50,7 @@ class WorkflowTabWidget(QWidget):
     def update_frame(self, frame: np.ndarray | None):
         if frame is None:
             self.frame_label.setPixmap(QPixmap())
+            self.frame_label.setText("Input not connected")
             return
 
         qimg = convert_cv_to_qt(frame)
@@ -58,21 +58,3 @@ class WorkflowTabWidget(QWidget):
         pixmap_scaled = pixmap.scaled(self.org_img_size, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
         self.frame_label.setPixmap(pixmap_scaled)
 
-    # def update_source_frame(self, frame):
-    #     if frame is None:
-    #         self.source_frame_label.setPixmap(QPixmap())
-    #         return
-    #     qimg = convert_cv_to_qt(frame)
-    #     pixmap = QPixmap.fromImage(qimg)
-    #     pixmap_scaled = pixmap.scaled(self.org_img_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-    #     self.source_frame_label.setPixmap(pixmap_scaled)
-    #
-    # def update_processed_frame(self, frame):
-    #     if frame is None:
-    #         self.processed_frame_label.setPixmap(QPixmap())
-    #         return
-    #     qimg = convert_cv_to_qt(frame)
-    #     pixmap = QPixmap.fromImage(qimg)
-    #     pixmap_scaled = pixmap.scaled(self.processed_img_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
-    #     self.processed_frame_label.setPixmap(pixmap_scaled)
-    #
