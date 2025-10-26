@@ -35,6 +35,7 @@ outputs = { self, nixpkgs, flake-utils, ... }:
 						scikit-learn
 						streamlit
 						pydantic
+						markdown
                     ]))
                 ];
                 LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath libs}";

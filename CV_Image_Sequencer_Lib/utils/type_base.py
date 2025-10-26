@@ -1,15 +1,44 @@
 from dataclasses import dataclass
 from typing import Any
+import colorsys
+import json
+from dataclasses import dataclass, asdict, is_dataclass
+from typing import Type, Dict, Any, TypeVar
 
+T = TypeVar("T", bound="Serializable")
+class Serializable:
+    _registry: Dict[str, Type["Serializable"]] = {}
+
+    def __init_subclass__(cls, **kwargs):
+        """Automatically register subclasses by class name."""
+        super().__init_subclass__(**kwargs)
+        Serializable._registry[cls.__name__] = cls
+
+
+class ColorRegistry:
+    _index = 0
+    _colors = {}
+
+    @classmethod
+    def get_color(cls, key: str):
+        if key not in cls._colors:
+            hue = (cls._index * 0.618034) % 1.0  # golden ratio spacing
+            cls._index += 1
+            rgb = colorsys.hsv_to_rgb(hue, 0.6, 0.95)
+            rgb_255 = []
+            for i in range(3):
+                rgb_255.append(int(round(255 * rgb[i])))
+            cls._colors[key] = tuple(rgb_255)
+        return cls._colors[key]
 
 @dataclass
-class Type:
+class IOType(Serializable):
     data_type: type
     value: Any | None = None
     default_value = None
 
     def get_default_value(self) -> object:
-        return Type(data_type=self.data_type)
+        return IOType(data_type=self.data_type)
 
     def set_value(self, value):
         self.value = value
@@ -18,8 +47,11 @@ class Type:
     def get_value(self):
         return self.value
 
+    def __init_subclass__(cls):
+        cls.color = ColorRegistry.get_color(cls.__name__)
+
 @dataclass
-class DictType(Type):
+class DictType(IOType):
     value_dict = {}
     data_type: type = str
 

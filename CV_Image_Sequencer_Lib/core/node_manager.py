@@ -1,6 +1,9 @@
-from PySide6.QtCore import QObject
+from PySide6.QtCore import QObject, Signal
 
-from ..core.node import InPut, Node, OutPut
+from CV_Image_Sequencer_Lib.utils.source_manager import SourceManager
+
+from ..core.node_base import InPut, Node, OutPut
+from ..core.nodes import GrayScaleSourceNode, SourceNode
 
 
 class NodeManager(QObject):
@@ -9,14 +12,22 @@ class NodeManager(QObject):
     new nodes as well as making new connections and removing connections.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, source_manager: SourceManager) -> None:
         super().__init__()
 
+        self.source_manager = source_manager
         self.nodes: list[Node] = []
         self.output_connections: dict[OutPut, list[InPut]] = {}
 
-    def add_node(self, node: Node):
+    def add_node(self, node_type: type, **kwargs) -> Node:
+        id = kwargs["id"] if "id" in kwargs else ""
+        if node_type == SourceNode or node_type == GrayScaleSourceNode:
+            n_frames = kwargs["n_frames"] if "n_frames" in kwargs else 3
+            node = node_type(self.source_manager, n_frames, id=id)
+        else:
+            node = node_type(id=id)
         self.nodes.append(node)
+        return node
 
     def delete_node(self, node: Node):
         # check if node is in node_list:
@@ -26,14 +37,11 @@ class NodeManager(QObject):
         for i in node.inputs:
             self.disconnect_input(i)
 
-        to_remove = []
-        for o in self.output_connections:
-            inputs = self.output_connections[o].copy()
-            for i in inputs:
+        for o in node.outputs:
+            if not o in self.output_connections:
+                continue
+            for i in self.output_connections[o]:
                 self.disconnect_input(i)
-            if not self.output_connections[o]:
-                to_remove.append(o)
-        for o in to_remove:
             self.output_connections.pop(o)
 
         self.nodes.remove(node)

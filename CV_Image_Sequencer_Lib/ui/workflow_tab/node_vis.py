@@ -1,111 +1,15 @@
-from enum import Enum
-from PySide6.QtWidgets import (QFrame, QGraphicsEllipseItem, QGraphicsItem, QGraphicsPathItem,
-                               QGraphicsProxyWidget, QGraphicsRectItem, QGraphicsScene,
-                               QGraphicsTextItem, QGraphicsView, QHBoxLayout, QLineEdit,
-                               QPushButton, QSpinBox, QWidget, QLabel, QVBoxLayout, QComboBox)
-from PySide6.QtGui import QFont, QPainterPathStroker, QPen, QBrush, QColor, QPainterPath, qRgba
+from PySide6.QtWidgets import (QGraphicsEllipseItem, QGraphicsItem, QGraphicsPathItem,
+                               QGraphicsRectItem, QGraphicsTextItem, QLabel, QHBoxLayout, QPushButton, QWidget)
+from PySide6.QtGui import QIcon, QPainterPathStroker, QPen, QBrush, QColor, QPainterPath
 from PySide6.QtCore import QObject, QPointF, Qt, Signal
 
-from CV_Image_Sequencer_Lib.ui.settings_vis import SettingsVis
-from ..core.node import Node, OutPut, InPut
-from ..utils.types import DictType, Scalar
+from CV_Image_Sequencer_Lib.assets.styles.style import STYLE
+from CV_Image_Sequencer_Lib.ui.styled_widgets import StyledButton
+from .help_dialog import HelpDialog
 
-def port_label(text: str) -> QLabel:
-    label = QLabel(text)
-    label.setStyleSheet("font-size: 11px; border: none;")
-    return label
-
-def port_dropdown(port: InPut | OutPut) -> QFrame: 
-        if not issubclass(port.data_type, DictType): # enum like
-            raise ValueError("Wrong type passed to port_dropdown")
-
-        widget = QFrame()
-        widget.setStyleSheet("background-color: transparent; border: none;")
-        layout = QHBoxLayout(widget)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(4)
-
-
-        label = port_label(port.label)
-
-        dropdown = QComboBox()
-        for option in port.data_type.value_dict.keys():
-            dropdown.addItem(option, option)
-
-        if port.data_type.value is not None:
-            dropdown.setCurrentText(port.data_type.value)
-        else:
-            default = port.data_type.default_value
-            if default is not None:
-                dropdown.setCurrentText(default)
-
-        dropdown.setStyleSheet("""
-                QComboBox {
-                    font-size: 11px;
-                    color: white;
-                    border: 2px solid #333;
-                }
-                QComboBox QAbstractItemView {
-                    font-size: 11px;  /* font size for the drop-down items */
-                    background: #2b2b2b;
-                    color: white;
-                }
-        """)
-
-        if isinstance(port, InPut):
-            dropdown.currentTextChanged.connect(lambda x:
-                                                port.data_update(port.data.set_value(x)))
-        else:
-            dropdown.setEditable(False)
-
-        layout.addWidget(label)
-        layout.addWidget(dropdown)
-        return widget
-
-def port_line_edit(port: InPut | OutPut) -> QFrame:
-    if not issubclass(port.data_type, Scalar): # enum like
-        raise ValueError("Wrong type passed to port_line_edit")
-    widget = QFrame()
-    widget.setStyleSheet("background-color: transparent; border: none;")
-    layout = QHBoxLayout(widget)
-    layout.setContentsMargins(0, 0, 0, 0)
-    layout.setSpacing(4)
-
-    label = port_label(port.label)
-
-    edit = QLineEdit()
-    edit.setFixedWidth(50)
-
-    edit.setStyleSheet("""
-            QLineEdit {
-                font-size: 11px;
-                color: white;
-                border: 2px solid #333;
-            }
-    """)
-
-    if isinstance(port, InPut):
-        layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(edit, alignment=Qt.AlignmentFlag.AlignRight)
-        edit.textChanged.connect(lambda x: port.data_update(port.data.set_value_from_string(x)))
-        if port.data.value is not None:
-            edit.setText(str(port.data.value))
-    else:
-        edit.setReadOnly(True)
-        layout.addWidget(edit, alignment=Qt.AlignmentFlag.AlignRight)
-        layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignRight)
-        port.computation_finished_signal.connect(lambda x: edit.setText(str(x.value)))
-    return widget
-
-def create_proxy(parent: QGraphicsItem, widget: QWidget, x: float, y: float, w: float, h: float):
-    proxy = QGraphicsProxyWidget(parent)
-    proxy.setWidget(widget)
-    proxy.setGeometry(x, y, w, h)
-
-def create_proxy_no_position(parent: QGraphicsItem, widget: QWidget):
-    proxy = QGraphicsProxyWidget(parent)
-    proxy.setWidget(widget)
-    return proxy
+from .type_vis import (BoolVis, EnumVisInput, EnumVisOutput, ScalarVisInput, ScalarVisOutput, create_proxy_no_position, create_proxy)
+from CV_Image_Sequencer_Lib.core.node_base import Node, OutPut, InPut
+from CV_Image_Sequencer_Lib.utils.types import Bool, DictType, Scalar
 
 
 class IOPort(QObject, QGraphicsEllipseItem):
@@ -120,21 +24,28 @@ class IOPort(QObject, QGraphicsEllipseItem):
         self.parent_node = parent_node
         self.port = port
 
-        self.color = QColor("#aaaaaa")
+        self.color = QColor.fromRgb(*port.data.color)
 
-        if issubclass(port.data_type, DictType): # enum like
-            widget = port_dropdown(port)
-            proxy = create_proxy_no_position(self, widget)
-        elif issubclass(port.data_type, Scalar):
-            widget = port_line_edit(port)
-            proxy = create_proxy_no_position(self, widget)
+        self.data_widget = None
+        if issubclass(type(port.data), DictType): # enum like
+            if isinstance(port, OutPut):
+                self.data_widget = EnumVisOutput(port)
+            else:
+                self.data_widget = EnumVisInput(port)
+            proxy = create_proxy_no_position(self, self.data_widget)
+        elif issubclass(type(port.data), Scalar):
+            if isinstance(port, OutPut):
+                self.data_widget = ScalarVisOutput(port)
+            else:
+                self.data_widget = ScalarVisInput(port)
+            proxy = create_proxy_no_position(self, self.data_widget)
+        elif isinstance(port.data, Bool):
+            self.data_widget = BoolVis(port)
+            proxy = create_proxy_no_position(self, self.data_widget)
         else:
             proxy = QGraphicsTextItem(port.label)
-            proxy.setDefaultTextColor(Qt.GlobalColor.white)
+            proxy.setDefaultTextColor(QColor(STYLE["textcolor"]))
             proxy.setParentItem(self)
-
-        # bg_rect = QGraphicsRectItem(proxy.boundingRect(), proxy)
-        # bg_rect.setPen(QPen(Qt.GlobalColor.red, 1))
 
         if isinstance(port, OutPut):
             proxy.setPos(self.rect().x() - proxy.boundingRect().width() - 5 ,
@@ -159,6 +70,7 @@ class IOPort(QObject, QGraphicsEllipseItem):
 class NodeVis(QObject, QGraphicsRectItem):
     node_position_changed_signal = Signal()
     double_clicked_signal = Signal(object)
+    delete_signal = Signal(object)
 
     def __init__(self, node: Node, width=120, height=60):
         QObject.__init__(self)
@@ -172,10 +84,10 @@ class NodeVis(QObject, QGraphicsRectItem):
 
 
     def init_ui(self):
-        self.bg_default = QColor("#3d3d3d")
-        self.bg_selected = QColor("#2b2b2b")
-        self.border_default = QColor("#5d5d5d")
-        self.border_selected = QColor("#5d85c7")
+        self.bg_default = QColor(STYLE["bg_default"])
+        self.bg_selected = QColor(STYLE["bg_selected"])
+        self.border_default = QColor(STYLE["border_default"])
+        self.border_selected = QColor(STYLE["border_selected"])
 
         self.setBrush(QBrush(self.bg_default))
         self.setPen(QPen(self.border_default, 2))
@@ -188,29 +100,37 @@ class NodeVis(QObject, QGraphicsRectItem):
         ########################
         ## Label:
         ########################
-        rect = self.rect()
-        name_rect = QGraphicsRectItem(0, 0, rect.width() - 2, 25, self)
-        name_rect.setBrush(QBrush(QColor("#5d5d5d")))
-        name_rect.setPen(QPen(self.border_default, 0))
+        top_bar = QWidget()
+        top_bar.setStyleSheet("background: transparent;")
+        top_bar_layout = QHBoxLayout(top_bar)
+        top_bar_layout.setContentsMargins(0, 0, 0, 0)
+        top_bar_layout.setSpacing(0)
+
+        self.help_button = StyledButton("", ["help.png"])
+        self.help_button.setFixedSize(15, 15)
+        self.help_button.clicked.connect(self.show_help)
+        top_bar_layout.addWidget(self.help_button)
 
         self.name_label = QLabel(self.node.name)
         self.name_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.name_label.setStyleSheet("""
             QLabel {
                 background: transparent;
-                color: #f0f0f0;
-                border: none;
                 font-size: 13px;
+                border: none;
             }
         """)
-        create_proxy(self, self.name_label, rect.left() + 5, rect.top() + 5, rect.width()
-                     - 10, 15)
+        top_bar_layout.addWidget(self.name_label, alignment=Qt.AlignmentFlag.AlignCenter)
+        delete_button = StyledButton("", ["close_small.png"])
+        delete_button.setFixedSize(15, 15)
+        delete_button.clicked.connect(lambda: self.delete_signal.emit(self))
+        top_bar_layout.addWidget(delete_button)
 
         ########################
         ## Inputs/Outputs:
         ########################
-        y = name_rect.rect().y() + name_rect.rect().height() + 12
-        max_width = name_rect.rect().width()
+        y = 37
+        max_width = self.rect().width()
         for o in self.node.outputs:
             output_port = IOPort(o, self.rect().width(), y,
                                  parent=self, parent_node=self.node)
@@ -228,11 +148,21 @@ class NodeVis(QObject, QGraphicsRectItem):
                 max_width = input_port.width
 
 
-        name_rect.setRect(name_rect.rect().x() + 1, name_rect.rect().y() + 1, max_width + 18, name_rect.rect().height())
         self.setRect(self.rect().x(), self.rect().y(), max_width + 20, y + 10)
+
+        rect = self.rect()
+        name_rect = QGraphicsRectItem(1, 1, rect.width() - 2, 25, self)
+        name_rect.setBrush(QBrush(QColor(STYLE["top_bar"])))
+        name_rect.setPen(QPen(self.border_default, 0))
+        create_proxy(self, top_bar, self.rect().left() + 10, name_rect.rect().top() + 5,
+                     self.rect().width() - 20, 15)
+
         for o in self.output_ports:
             o.setPos(self.rect().width(), o.pos().y())
 
+    def show_help(self):
+        dialog = HelpDialog(self.node.name + " Help", self.node.help_text)
+        dialog.exec()
 
     def paint(self, painter, option, widget=None):
         if self.isSelected():
@@ -263,14 +193,14 @@ class NodeVis(QObject, QGraphicsRectItem):
 
 
 class Connection(QObject, QGraphicsPathItem):
-    delete_connection_sigal = Signal()
+    delete_connection_sigal = Signal(object)
 
-    def __init__(self, start_port):
+    def __init__(self, start_port: IOPort):
         QObject.__init__(self)
         QGraphicsPathItem.__init__(self)
         self.start_port: IOPort = start_port
         self.end_port: IOPort | None = None
-        self.setPen(QPen(QColor("#f0f0f0"), 2))
+        self.setPen(QPen(QColor.fromRgb(*start_port.port.data.color), 2))
         self.update_temp_path(start_port.scenePos(), start_port.scenePos())
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemStacksBehindParent, True)
 
@@ -314,6 +244,6 @@ class Connection(QObject, QGraphicsPathItem):
 
     def mousePressEvent(self, event) -> None:
         if event.button() == Qt.MouseButton.RightButton and self.end_port is not None:
-            self.delete_connection_sigal.emit()
+            self.delete_connection_sigal.emit(self)
         else:
             return super().mousePressEvent(event)

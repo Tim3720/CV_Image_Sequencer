@@ -3,7 +3,7 @@ import cv2 as cv
 import numpy as np
 from dataclasses import dataclass
 
-from .type_base import DictType, Type
+from .type_base import IOType, DictType
 
 @dataclass
 class ColorCode3C21C(DictType):
@@ -34,9 +34,22 @@ class ThresholdTypes(DictType):
     def get_default_value(self):
         return ThresholdTypes(value=self.default_value)
 
+@dataclass
+class BitWiseOperations(DictType):
+    value_dict = {
+                "And": cv.bitwise_and,
+                "Or": cv.bitwise_or,
+                "XOr": cv.bitwise_xor,
+                }
+    value: str | None = None
+    default_value = "And"
+
+    def get_default_value(self):
+        return ThresholdTypes(value=self.default_value)
+
 
 @dataclass
-class Image3C(Type):
+class Image3C(IOType):
     value: np.ndarray | None = None
     data_type: type = np.ndarray
 
@@ -47,7 +60,7 @@ class Image3C(Type):
             raise ValueError("Expected an image with 3 channels")
 
 @dataclass
-class Image1C(Type):
+class Image1C(IOType):
     value: np.ndarray | None = None
     data_type: type = np.ndarray
 
@@ -59,7 +72,7 @@ class Image1C(Type):
 
 
 @dataclass
-class Scalar(Type):
+class Scalar(IOType):
     default_value = 0
     min_value: Any | None = None
     max_value: Any | None = None
@@ -115,3 +128,18 @@ class Int(Scalar):
 
     def set_value_from_string(self, value: str):
         return self.set_value(int(value))
+
+@dataclass
+class Bool(IOType):
+    value: int | None = None
+    data_type: type = bool
+    default_value = False
+
+    def get_default_value(self) -> object:
+        return Bool(value=self.default_value)
+
+
+
+
+TYPE_DICT = {
+        }

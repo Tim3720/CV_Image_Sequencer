@@ -1,26 +1,46 @@
+from cv2.gapi.wip.draw import Image
 from numpy import isin
-from CV_Image_Sequencer_Lib.utils.type_base import Type
+from CV_Image_Sequencer_Lib.utils.type_base import IOType
 from .workflow_base import Workflow
-from CV_Image_Sequencer_Lib.utils.video_manager import VideoManager
+from CV_Image_Sequencer_Lib.utils.source_manager import SourceManager
 from typing import override
 import cv2 as cv
+import numpy as np
 
 from ..utils.types import Image3C, Image1C, ColorCode3C21C, Int, Float
 
 class GetFrame(Workflow):
-    def __init__(self, video_manager: VideoManager, n_frames: int) -> None:
-        super().__init__(n_inputs=0)
+    def __init__(self, source_manager: SourceManager, n_frames: int) -> None:
+        super().__init__(n_inputs=1)
         self.n_frames = n_frames
-        self.video_manager = video_manager
+        self.source_manager = source_manager
 
     @override
     def function(self, inputs: list) -> list:
-        frames = self.video_manager.get_next_n_frames(self.n_frames)
+        frames = self.source_manager.get_next_n_frames(self.n_frames,
+                                                       inputs[0].get_value(), False)
         if frames is None:
-            raise ValueError(f"VideoManager could not read next {self.n_frames} frames.")
+            return [Image3C(value=None) for _ in range(self.n_frames)]
         output = []
         for i in range(len(frames)):
             output.append(Image3C(value=frames[i]))
+        return output
+
+class GetFrameGray(Workflow):
+    def __init__(self, source_manager: SourceManager, n_frames: int) -> None:
+        super().__init__(n_inputs=1)
+        self.n_frames = n_frames
+        self.source_manager = source_manager
+
+    @override
+    def function(self, inputs: list) -> list:
+        frames = self.source_manager.get_next_n_frames(self.n_frames,
+                                                       inputs[0].get_value(), True)
+        if frames is None:
+            return [Image1C(value=None) for _ in range(self.n_frames)]
+        output = []
+        for i in range(len(frames)):
+            output.append(Image1C(value=frames[i]))
         return output
 
 class GrayScale(Workflow):
@@ -76,6 +96,10 @@ class ChannelSplit(Workflow):
     def function(self, inputs) -> list:
         channels = cv.split(inputs[0].get_value())
         output = []
+        if not channels:
+            for _ in range(3):
+                output.append(Image1C(value=None))
+            return output
         for channel in channels:
             output.append(Image1C(value=channel))
         return output
@@ -89,3 +113,61 @@ class ABSDiff(Workflow):
         output = cv.absdiff(inputs[0].get_value(), inputs[1].get_value())
         return [Image1C(value=output)]
 
+
+class ClampedDiff(Workflow):
+    def __init__(self) -> None:
+        super().__init__(n_inputs=3)
+
+    @override
+    def function(self, inputs) -> list:
+        if inputs[0].get_value() is None or inputs[1].get_value() is None:
+            return [Image1C(value=None)]
+        res = inputs[0].get_value().astype(np.int32) - inputs[1].get_value().astype(np.int32)
+        res[res < inputs[2].get_value()] = 0
+        res = res.astype(np.uint8)
+        return [Image1C(value=res)]
+
+
+
+class Invert3C(Workflow):
+    def __init__(self) -> None:
+        super().__init__(n_inputs=1)
+
+    @override
+    def function(self, inputs) -> list:
+        res = cv.bitwise_not(inputs[0].get_value())
+        return [Image3C(value=res)]
+
+
+class CWiseOp(Workflow):
+    def __init__(self) -> None:
+        super().__init__(n_inputs=3)
+
+    @override
+    def function(self, inputs) -> list:
+        res = inputs[1].value_dict[inputs[1].get_value()](inputs[0].get_value())
+        return [Image1C(value=res)]
+
+
+class Min(Workflow):
+    def __init__(self) -> None:
+        super().__init__(n_inputs=2)
+
+    @override
+    def function(self, inputs) -> list:
+        if inputs[0].get_value() is None or inputs[1].get_value() is None:
+            return [Image1C(value=None)]
+        res = np.min([inputs[0].get_value(), inputs[1].get_value()], axis=0)
+        return [Image1C(value=res)]
+
+
+class Max(Workflow):
+    def __init__(self) -> None:
+        super().__init__(n_inputs=2)
+
+    @override
+    def function(self, inputs) -> list:
+        if inputs[0].get_value() is None or inputs[1].get_value() is None:
+            return [Image1C(value=None)]
+        res = np.max([inputs[0].get_value(), inputs[1].get_value()], axis=0)
+        return [Image1C(value=res)]

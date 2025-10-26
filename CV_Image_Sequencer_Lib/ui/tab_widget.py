@@ -1,10 +1,13 @@
+import os
+from os.path import isfile
 from PySide6.QtWidgets import QTabBar, QWidget, QTabWidget, QVBoxLayout, QLabel, QLineEdit
-from PySide6.QtCore import QTimer, Signal
+from PySide6.QtCore import Signal
+import json
 
-from CV_Image_Sequencer_Lib.utils.video_manager import VideoManager
+from CV_Image_Sequencer_Lib.utils.source_manager import SourceManager
 
-from .video_tab import VideoPlayerTab
-from .workflow_tab import WorkflowTabWidget
+from .source_tab.source_tab import SourcePlayerTab
+from .workflow_tab.workflow_tab import WorkflowTabWidget
 
 
 
@@ -56,7 +59,7 @@ class TabBar(QTabBar):
 
 class TabWidget(QTabWidget):
 
-    def __init__(self, video_manager: VideoManager, parent = None) -> None:
+    def __init__(self, source_manager: SourceManager, parent = None) -> None:
         super().__init__(parent)
 
         tab_bar = TabBar()
@@ -65,7 +68,7 @@ class TabWidget(QTabWidget):
 
         self.workflow_tabs: list[WorkflowTabWidget] = []
 
-        self.video_manager = video_manager
+        self.source_manager = source_manager
         self.init_ui()
 
         self.tabCloseRequested.connect(self.close_tab)
@@ -73,9 +76,9 @@ class TabWidget(QTabWidget):
 
 
     def init_ui(self):
-        self.video_tab = VideoPlayerTab(self.video_manager)
-        workflow_tab = WorkflowTabWidget(self.video_manager)
-        self.addTab(self.video_tab, "Live Video")
+        self.video_tab = SourcePlayerTab(self.source_manager)
+        workflow_tab = WorkflowTabWidget(self.source_manager)
+        self.addTab(self.video_tab, "Source")
         self.addTab(workflow_tab, "Workflow 1")
         self.workflow_tabs.append(workflow_tab)
 
@@ -90,15 +93,38 @@ class TabWidget(QTabWidget):
     def handle_tab_clicked(self):
         self.insert_new_tab()
 
-    def insert_new_tab(self):
+    def insert_new_tab(self, tab: WorkflowTabWidget | None = None):
         insert_index = self.count() - 1
-        new_tab = WorkflowTabWidget(self.video_manager)
+        new_tab = tab if tab is not None else WorkflowTabWidget(self.source_manager)
         self.insertTab(insert_index, new_tab, f"Workflow {insert_index}")
         self.setCurrentIndex(insert_index)  # switch to the new tab
         self.workflow_tabs.append(new_tab)
+        self.source_manager.emit_frame()
 
     def close_tab(self, index):
         widget = self.widget(index)
         self.removeTab(index)
         self.workflow_tabs.pop(index - 1)
         widget.deleteLater()
+
+    def save(self):
+        state = {}
+        state["Workflows"] = {}
+        for i, tab in enumerate(self.workflow_tabs):
+            state["Workflows"][f"Workflow {i}"] = tab.save_state()
+
+        with open(".state.json", "w") as f:
+            json.dump(state, f, indent=2)
+
+    def load(self):
+        if not os.path.isfile(".state.json"):
+            return
+        with open(".state.json", "r") as f:
+            d = json.load(f)
+        while self.workflow_tabs:
+            self.close_tab(len(self.workflow_tabs))
+
+        for workflow in d["Workflows"]:
+            workflow_tab = WorkflowTabWidget(self.source_manager)
+            workflow_tab.load_state(d["Workflows"][workflow])
+            self.insert_new_tab(workflow_tab)
