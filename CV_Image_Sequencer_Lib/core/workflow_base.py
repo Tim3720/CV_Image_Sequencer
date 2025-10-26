@@ -1,8 +1,6 @@
 from typing import Generic, TypeVar
 from pydantic import BaseModel
 
-from CV_Image_Sequencer_Lib.utils.type_base import IOType
-
 
 T = TypeVar("T")
 class Setting(BaseModel, Generic[T]):

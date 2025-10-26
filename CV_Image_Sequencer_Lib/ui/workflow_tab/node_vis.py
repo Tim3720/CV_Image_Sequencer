@@ -3,13 +3,13 @@ from PySide6.QtWidgets import (QGraphicsEllipseItem, QGraphicsItem, QGraphicsPat
 from PySide6.QtGui import QIcon, QPainterPathStroker, QPen, QBrush, QColor, QPainterPath
 from PySide6.QtCore import QObject, QPointF, Qt, Signal
 
-from CV_Image_Sequencer_Lib.assets.styles.style import STYLE
-from CV_Image_Sequencer_Lib.ui.styled_widgets import StyledButton
+from ...assets.styles.style import STYLE
+from ...ui.styled_widgets import StyledButton
 from .help_dialog import HelpDialog
 
 from .type_vis import (BoolVis, EnumVisInput, EnumVisOutput, ScalarVisInput, ScalarVisOutput, create_proxy_no_position, create_proxy)
-from CV_Image_Sequencer_Lib.core.node_base import Node, OutPut, InPut
-from CV_Image_Sequencer_Lib.utils.types import Bool, DictType, Scalar
+from ...core.node_base import Node, OutPut, InPut
+from ...utils.types import Bool, DictType, Scalar
 
 
 class IOPort(QObject, QGraphicsEllipseItem):

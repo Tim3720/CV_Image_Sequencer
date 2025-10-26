@@ -1,8 +1,7 @@
-from PySide6.QtGui import QDoubleValidator, QIntValidator
-from PySide6.QtWidgets import (QCheckBox, QFrame, QGraphicsItem, QGraphicsProxyWidget, QHBoxLayout, QLineEdit, QWidget, QLabel, QComboBox)
-from CV_Image_Sequencer_Lib.assets.styles.style import STYLE
-from CV_Image_Sequencer_Lib.core.nodes import OutPut, InPut
-from CV_Image_Sequencer_Lib.utils.types import Bool, DictType, Float, Int, Scalar
+from PySide6.QtWidgets import (QCheckBox, QGraphicsItem, QGraphicsProxyWidget, QHBoxLayout, QLineEdit, QWidget, QLabel, QComboBox)
+from ...assets.styles.style import STYLE
+from ...core.nodes import OutPut, InPut
+from ...utils.types import Bool, DictType, Float, Int, Scalar
 from PySide6.QtCore import Qt
 
 def port_label(text: str) -> QLabel:

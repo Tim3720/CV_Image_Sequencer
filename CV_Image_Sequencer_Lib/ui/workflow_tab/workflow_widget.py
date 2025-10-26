@@ -9,10 +9,10 @@ from PySide6.QtWidgets import (
 )
 
 
-from CV_Image_Sequencer_Lib.core.node_base import Node
-from CV_Image_Sequencer_Lib.core.node_manager import NodeManager
-from CV_Image_Sequencer_Lib.ui.workflow_tab.node_vis import NodeVis
-from CV_Image_Sequencer_Lib.utils.source_manager import SourceManager
+from ...core.node_base import Node
+from ...core.node_manager import NodeManager
+from ...ui.workflow_tab.node_vis import NodeVis
+from ...utils.source_manager import SourceManager
 
 from .workflow_scene import WorkflowScene
 from .add_node_menu import AddNodeMenu

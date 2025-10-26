@@ -2,7 +2,7 @@ from dataclasses import asdict, replace
 from PySide6.QtCore import QObject, Signal
 import uuid
 
-from CV_Image_Sequencer_Lib.utils.type_base import Serializable 
+from ..utils.type_base import Serializable 
 
 from ..core.workflow_base import Workflow
 from ..utils.types import (Float, Image1C, Image3C, IOType)

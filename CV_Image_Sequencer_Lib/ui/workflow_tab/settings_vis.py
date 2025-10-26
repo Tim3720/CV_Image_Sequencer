@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
 from PySide6.QtCore import Qt
 
-from CV_Image_Sequencer_Lib.core.workflow_base import Setting
+from ...core.workflow_base import Setting
 
 
 def set_settings_label_style(label: QLabel):

@@ -1,6 +1,6 @@
 from PySide6.QtCore import QObject, Signal
 
-from CV_Image_Sequencer_Lib.utils.source_manager import SourceManager
+from ..utils.source_manager import SourceManager
 
 from ..core.node_base import InPut, Node, OutPut
 from ..core.nodes import GrayScaleSourceNode, SourceNode

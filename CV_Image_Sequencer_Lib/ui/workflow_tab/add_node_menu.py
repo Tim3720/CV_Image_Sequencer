@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
 )
 
 
-from CV_Image_Sequencer_Lib.core.nodes import (ABSDiffNode, ChannelSplitNode, ClampedDiffNode,
+from ...core.nodes import (ABSDiffNode, ChannelSplitNode, ClampedDiffNode,
                                                GrayScaleSourceNode, Invert3CNode, MaxNode, MinNode,
                                                SourceNode, ThresholdNode)
 

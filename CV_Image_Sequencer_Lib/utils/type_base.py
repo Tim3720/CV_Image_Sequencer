@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 import colorsys
-import json
-from dataclasses import dataclass, asdict, is_dataclass
+from dataclasses import dataclass
 from typing import Type, Dict, Any, TypeVar
 
 T = TypeVar("T", bound="Serializable")

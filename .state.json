@@ -1,57 +1,7 @@
 {
   "Workflows": {
     "Workflow 0": {
-      "nodes": [
-        {
-          "type": "SourceNode",
-          "x": -543.0,
-          "y": 167.5,
-          "connections": [],
-          "values": [
-            "0"
-          ],
-          "id": "f76e20cf-5ab2-4351-9e5d-27a4c3125a49"
-        },
-        {
-          "type": "ThresholdNode",
-          "x": 146.0,
-          "y": 122.5,
-          "connections": [
-            {
-              "input": 0,
-              "output": {
-                "node": "904e5716-48e4-4f6f-b168-82c2d893d467",
-                "index": 0
-              }
-            }
-          ],
-          "values": [
-            null,
-            "100.0",
-            "255.0",
-            "Triangle"
-          ],
-          "id": "bea1c2a0-8c1c-47ce-842f-5a1bde724825"
-        },
-        {
-          "type": "ChannelSplitNode",
-          "x": -273.0,
-          "y": 125.5,
-          "connections": [
-            {
-              "input": 0,
-              "output": {
-                "node": "f76e20cf-5ab2-4351-9e5d-27a4c3125a49",
-                "index": 0
-              }
-            }
-          ],
-          "values": [
-            null
-          ],
-          "id": "904e5716-48e4-4f6f-b168-82c2d893d467"
-        }
-      ]
+      "nodes": []
     }
   }
 }

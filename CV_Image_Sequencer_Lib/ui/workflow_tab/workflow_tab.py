@@ -3,11 +3,11 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt, QSize
 import numpy as np
 
-from CV_Image_Sequencer_Lib.utils.type_base import Serializable
-from CV_Image_Sequencer_Lib.assets.styles.style import STYLE
+from ...utils.type_base import Serializable
+from ...assets.styles.style import STYLE
 
 from .workflow_widget import WorkflowWidget
-from CV_Image_Sequencer_Lib.utils.source_manager import SourceManager, convert_cv_to_qt
+from ...utils.source_manager import SourceManager, convert_cv_to_qt
 
 class WorkflowTabWidget(QWidget):
     def __init__(self, source_manager: SourceManager, parent=None):

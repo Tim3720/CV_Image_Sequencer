@@ -4,7 +4,7 @@ from PySide6.QtWidgets import QTabBar, QWidget, QTabWidget, QVBoxLayout, QLabel,
 from PySide6.QtCore import Signal
 import json
 
-from CV_Image_Sequencer_Lib.utils.source_manager import SourceManager
+from ..utils.source_manager import SourceManager
 
 from .source_tab.source_tab import SourcePlayerTab
 from .workflow_tab.workflow_tab import WorkflowTabWidget

@@ -3,8 +3,8 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtCore import QSize, Qt, Signal, Slot
 import numpy as np
 
-from CV_Image_Sequencer_Lib.assets.styles.style import STYLE
-from CV_Image_Sequencer_Lib.utils.source_manager import SourceManager, convert_cv_to_qt
+from ...assets.styles.style import STYLE
+from ...utils.source_manager import SourceManager, convert_cv_to_qt
 from ..styled_widgets import StyledButton
 
 class SourcePlayerTab(QWidget):

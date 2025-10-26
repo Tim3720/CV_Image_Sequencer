@@ -5,9 +5,9 @@ from PySide6.QtWidgets import (
     QGraphicsSceneMouseEvent,
 )
 
-from CV_Image_Sequencer_Lib.core.node_base import InPut, OutPut, Node
-from CV_Image_Sequencer_Lib.core.node_manager import NodeManager
-from CV_Image_Sequencer_Lib.utils.source_manager import SourceManager
+from ...core.node_base import InPut, OutPut, Node
+from ...core.node_manager import NodeManager
+from ...utils.source_manager import SourceManager
 from .node_vis import Connection, IOPort, NodeVis
 
 class WorkflowScene(QGraphicsScene):

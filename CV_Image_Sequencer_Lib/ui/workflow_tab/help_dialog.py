@@ -3,7 +3,6 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
-import sys
 
 class HelpDialog(QDialog):
     def __init__(self, help_title: str, help_text: str, parent=None):

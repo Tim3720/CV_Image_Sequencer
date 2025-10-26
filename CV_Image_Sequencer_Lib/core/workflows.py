@@ -1,13 +1,10 @@
-from cv2.gapi.wip.draw import Image
-from numpy import isin
-from CV_Image_Sequencer_Lib.utils.type_base import IOType
 from .workflow_base import Workflow
-from CV_Image_Sequencer_Lib.utils.source_manager import SourceManager
+from ..utils.source_manager import SourceManager
 from typing import override
 import cv2 as cv
 import numpy as np
 
-from ..utils.types import Image3C, Image1C, ColorCode3C21C, Int, Float
+from ..utils.types import Image3C, Image1C, ColorCode3C21C, Float
 
 class GetFrame(Workflow):
     def __init__(self, source_manager: SourceManager, n_frames: int) -> None:
