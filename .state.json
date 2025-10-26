@@ -11,6 +11,19 @@
             "0"
           ],
           "id": "d0d84e1b-0451-4f45-ade5-9ad1d3d55e8b"
+        },
+        {
+          "type": "ThresholdNode",
+          "x": -228.0,
+          "y": 112.5,
+          "connections": [],
+          "values": [
+            null,
+            "100.0",
+            "255.0",
+            "Binary"
+          ],
+          "id": "d2c90302-4e58-4fbf-bdbb-eb025ded02d8"
         }
       ]
     }

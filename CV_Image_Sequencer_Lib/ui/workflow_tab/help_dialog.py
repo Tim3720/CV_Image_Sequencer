@@ -9,18 +9,11 @@ class HelpDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(help_title)
         self.setMinimumSize(480, 320)
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowContextHelpButtonHint)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowContextHelpButtonHint)
 
         layout = QVBoxLayout(self)
-        layout.setContentsMargins(16, 16, 16, 16)
-        layout.setSpacing(12)
-
-        # Title
-        title_label = QLabel(help_title)
-        title_font = QFont("Inter", 13, QFont.Bold)
-        title_label.setFont(title_font)
-        title_label.setStyleSheet("color: #222;")
-        layout.addWidget(title_label)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
 
         # Text area (Markdown)
         text_area = QTextBrowser()

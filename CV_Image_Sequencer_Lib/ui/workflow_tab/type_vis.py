@@ -41,15 +41,15 @@ class EnumVisInput(QWidget):
             if default is not None:
                 self.dropdown.setCurrentText(default)
 
-        self.dropdown.setStyleSheet("""
-                QComboBox {
+        self.dropdown.setStyleSheet(f"""
+                QComboBox {{
                     font-size: 11px;
                     border: 2px solid #333;
-                }
-                QComboBox QAbstractItemView {
+                }}
+                QComboBox QAbstractItemView {{
                     font-size: 11px;  /* font size for the drop-down items */
-                    background: #2b2b2b;
-                }
+                    background: {STYLE["bg_default"]};
+                }}
         """)
 
         self.dropdown.currentTextChanged.connect(lambda x:

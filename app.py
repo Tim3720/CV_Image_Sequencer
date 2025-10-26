@@ -5,7 +5,7 @@ from CV_Image_Sequencer_Lib.assets.styles.style import DARK, LIGHT, STYLE
 from CV_Image_Sequencer_Lib.ui import main_window
 from pathlib import Path
 
-USE_DARK = True
+USE_DARK = False
 
 def main():
     """
