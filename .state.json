@@ -1,7 +1,18 @@
 {
   "Workflows": {
     "Workflow 0": {
-      "nodes": []
+      "nodes": [
+        {
+          "type": "SourceNode",
+          "x": -546.0,
+          "y": 50.5,
+          "connections": [],
+          "values": [
+            "0"
+          ],
+          "id": "d0d84e1b-0451-4f45-ade5-9ad1d3d55e8b"
+        }
+      ]
     }
   }
 }

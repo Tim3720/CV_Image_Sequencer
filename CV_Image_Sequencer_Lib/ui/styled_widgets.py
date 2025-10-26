@@ -1,33 +1,21 @@
 from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QPushButton, QLabel, QLineEdit
-
+import os
 
 class StyledButton(QPushButton):
 
     def __init__(self, text: str = "", icon_names: list[str] = [], parent=None):
         super().__init__(text, parent)
         self.icons = []
+
+        HERE = os.path.dirname(__file__)  # path to Lib/
         for icon_name in icon_names:
-            icon = QIcon("CV_Image_Sequencer_Lib/assets/icons/" + icon_name)
+            icon = QIcon(os.path.join(HERE, "../assets/icons/",
+                                      icon_name))
             self.icons.append(icon)
         self.setIcon(self.icons[0])
 
         self.setObjectName("Primary")
-        # self.setStyleSheet("""
-        #     QPushButton {
-        #         background-color: #3d3d3d;
-        #         color: #f0f0f0;
-        #         border: 1px solid #555555;
-        #         padding: 8px 16px;
-        #         border-radius: 4px;
-        #     }
-        #     QPushButton:hover {
-        #         background-color: #555555;
-        #     }
-        #     QPushButton:pressed {
-        #         background-color: #2b2b2b;
-        #     }
-        # """)
 
 class StyledLabel(QLabel):
     def __init__(self, text="", parent=None):
