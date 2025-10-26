@@ -101,7 +101,7 @@ class NodeVis(QObject, QGraphicsRectItem):
         ## Label:
         ########################
         top_bar = QWidget()
-        top_bar.setStyleSheet("background: transparent;")
+        top_bar.setStyleSheet("background: transparent; border: none;")
         top_bar_layout = QHBoxLayout(top_bar)
         top_bar_layout.setContentsMargins(0, 0, 0, 0)
         top_bar_layout.setSpacing(0)
