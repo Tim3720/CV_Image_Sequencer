@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (QGraphicsEllipseItem, QGraphicsItem, QGraphicsPathItem,
                                QGraphicsRectItem, QGraphicsTextItem, QLabel, QHBoxLayout, QPushButton, QWidget)
-from PySide6.QtGui import QIcon, QPainterPathStroker, QPen, QBrush, QColor, QPainterPath
+from PySide6.QtGui import QPainterPathStroker, QPen, QBrush, QColor, QPainterPath
 from PySide6.QtCore import QObject, QPointF, Qt, Signal
 
 from ...assets.styles.style import STYLE
@@ -104,7 +104,7 @@ class NodeVis(QObject, QGraphicsRectItem):
         top_bar.setStyleSheet("background: transparent; border: none;")
         top_bar_layout = QHBoxLayout(top_bar)
         top_bar_layout.setContentsMargins(0, 0, 0, 0)
-        top_bar_layout.setSpacing(0)
+        top_bar_layout.setSpacing(8)
 
         self.help_button = StyledButton("", ["help.png"])
         self.help_button.setFixedSize(15, 15)
@@ -125,12 +125,13 @@ class NodeVis(QObject, QGraphicsRectItem):
         delete_button.setFixedSize(15, 15)
         delete_button.clicked.connect(lambda: self.delete_signal.emit(self))
         top_bar_layout.addWidget(delete_button)
+        proxy = create_proxy(self, top_bar, self.rect().left() + 10, self.rect().top() + 5, self.rect().width() - 20, 15)
 
         ########################
         ## Inputs/Outputs:
         ########################
         y = 37
-        max_width = self.rect().width()
+        max_width = proxy.rect().width()
         for o in self.node.outputs:
             output_port = IOPort(o, self.rect().width(), y,
                                  parent=self, parent_node=self.node)
@@ -150,12 +151,12 @@ class NodeVis(QObject, QGraphicsRectItem):
 
         self.setRect(self.rect().x(), self.rect().y(), max_width + 20, y + 10)
 
-        rect = self.rect()
-        name_rect = QGraphicsRectItem(1, 1, rect.width() - 2, 25, self)
+        proxy.resize(max_width, proxy.rect().height())
+
+        name_rect = QGraphicsRectItem(1, 1, self.rect().width() - 2, 25, self)
+        name_rect.setZValue(-1)
         name_rect.setBrush(QBrush(QColor(STYLE["top_bar"])))
         name_rect.setPen(QPen(self.border_default, 0))
-        create_proxy(self, top_bar, self.rect().left() + 10, name_rect.rect().top() + 5,
-                     self.rect().width() - 20, 15)
 
         for o in self.output_ports:
             o.setPos(self.rect().width(), o.pos().y())
@@ -190,6 +191,12 @@ class NodeVis(QObject, QGraphicsRectItem):
 
     def unlock_movement(self):
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, True)
+
+    def mouseMoveEvent(self, event):
+        super().mouseMoveEvent(event)
+        # Notify scene to grow if necessary
+        if self.scene() and hasattr(self.scene(), "itemMoved"):
+            getattr(self.scene(), "itemMoved")(self)
 
 
 class Connection(QObject, QGraphicsPathItem):

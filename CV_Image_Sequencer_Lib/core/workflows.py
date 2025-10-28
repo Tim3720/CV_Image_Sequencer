@@ -107,6 +107,8 @@ class ABSDiff(Workflow):
 
     @override
     def function(self, inputs) -> list:
+        if inputs[0].get_value() is None or inputs[1].get_value() is None:
+            return [Image1C(value=None)]
         output = cv.absdiff(inputs[0].get_value(), inputs[1].get_value())
         return [Image1C(value=output)]
 

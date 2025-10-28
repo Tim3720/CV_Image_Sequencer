@@ -33,18 +33,13 @@ class WorkflowWidget(QWidget):
 
     def init_ui(self):
         main_layout = QVBoxLayout(self)
-        self.stacked = QStackedWidget()
 
         self.scene = WorkflowScene(self.source_manager, self.node_manager)
         self.scene.setSceneRect(self.rect())
         self.scene.request_node_menu_signal.connect(self.add_node_menu)
         self.view = WorkflowView(self.scene)
 
-        self.stacked.addWidget(self.view)
-        self.stacked.setCurrentIndex(0)
-
-        main_layout.addWidget(self.stacked)
-
+        main_layout.addWidget(self.view)
         self.view.show()
 
 
@@ -98,6 +93,7 @@ class WorkflowWidget(QWidget):
         node_vis = NodeVis(node)
         self.node_visulisations.append(node_vis)
         self.scene.add_node(node_vis, x, y)
+        node_vis.setSelected(True)
 
         node_vis.double_clicked_signal.connect(self.update_frame)
         node_vis.delete_signal.connect(self.delete_node)

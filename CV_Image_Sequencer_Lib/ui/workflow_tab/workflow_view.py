@@ -8,10 +8,16 @@ from .workflow_scene import WorkflowScene
 class WorkflowView(QGraphicsView):
     def __init__(self, scene: WorkflowScene):
         super().__init__(scene)
+
+        self.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
+        self.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOn)
+
         self.setRenderHints(QPainter.RenderHint.Antialiasing | QPainter.RenderHint.SmoothPixmapTransform | self.renderHints())
-        # self.setDragMode(QGraphicsView.DragMode.NoDrag)
+        self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
+
         self.scale_factor = 1.15
-        self.setSceneRect(scene.sceneRect())
+        # self.setSceneRect(scene.sceneRect())
         self._panning = False
 
     # def mousePressEvent(self, event):

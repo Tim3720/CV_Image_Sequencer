@@ -119,8 +119,12 @@ class TabWidget(QTabWidget):
     def load(self):
         if not os.path.isfile(".state.json"):
             return
-        with open(".state.json", "r") as f:
-            d = json.load(f)
+
+        try:
+            with open(".state.json", "r") as f:
+                d = json.load(f)
+        except:
+            return
         while self.workflow_tabs:
             self.close_tab(len(self.workflow_tabs))
 

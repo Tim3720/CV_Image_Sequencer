@@ -3,27 +3,147 @@
     "Workflow 0": {
       "nodes": [
         {
-          "type": "SourceNode",
-          "x": -546.0,
-          "y": 50.5,
+          "type": "GrayScaleSourceNode",
+          "type_args": {
+            "n_frames": 4
+          },
+          "x": -525.5,
+          "y": -23.5,
           "connections": [],
           "values": [
             "0"
           ],
-          "id": "d0d84e1b-0451-4f45-ade5-9ad1d3d55e8b"
+          "id": "7ef5aa63-4e6a-49b9-88f8-480e6f4e834c"
+        },
+        {
+          "type": "MinNode",
+          "type_args": {},
+          "x": -230.0,
+          "y": -113.5,
+          "connections": [
+            {
+              "input": 0,
+              "output": {
+                "node": "7ef5aa63-4e6a-49b9-88f8-480e6f4e834c",
+                "index": 0
+              }
+            },
+            {
+              "input": 1,
+              "output": {
+                "node": "7ef5aa63-4e6a-49b9-88f8-480e6f4e834c",
+                "index": 1
+              }
+            }
+          ],
+          "values": [
+            null,
+            null
+          ],
+          "id": "6fb133b8-d07f-4282-95d3-1d2bfae1d727"
+        },
+        {
+          "type": "MinNode",
+          "type_args": {},
+          "x": -234.0,
+          "y": 77.5,
+          "connections": [
+            {
+              "input": 0,
+              "output": {
+                "node": "7ef5aa63-4e6a-49b9-88f8-480e6f4e834c",
+                "index": 2
+              }
+            },
+            {
+              "input": 1,
+              "output": {
+                "node": "7ef5aa63-4e6a-49b9-88f8-480e6f4e834c",
+                "index": 3
+              }
+            }
+          ],
+          "values": [
+            null,
+            null
+          ],
+          "id": "70492524-08fa-4b58-8780-a85abe64f684"
+        },
+        {
+          "type": "MaxNode",
+          "type_args": {},
+          "x": -30.0,
+          "y": -64.5,
+          "connections": [
+            {
+              "input": 0,
+              "output": {
+                "node": "6fb133b8-d07f-4282-95d3-1d2bfae1d727",
+                "index": 0
+              }
+            },
+            {
+              "input": 1,
+              "output": {
+                "node": "70492524-08fa-4b58-8780-a85abe64f684",
+                "index": 0
+              }
+            }
+          ],
+          "values": [
+            null,
+            null
+          ],
+          "id": "4bae3758-5afc-493d-a96e-7776bd9859d8"
+        },
+        {
+          "type": "ABSDiffNode",
+          "type_args": {},
+          "x": 164.0,
+          "y": 16.5,
+          "connections": [
+            {
+              "input": 0,
+              "output": {
+                "node": "4bae3758-5afc-493d-a96e-7776bd9859d8",
+                "index": 0
+              }
+            },
+            {
+              "input": 1,
+              "output": {
+                "node": "7ef5aa63-4e6a-49b9-88f8-480e6f4e834c",
+                "index": 0
+              }
+            }
+          ],
+          "values": [
+            null,
+            null
+          ],
+          "id": "62bb4b82-d648-4954-9b80-a1a05eefb2c5"
         },
         {
           "type": "ThresholdNode",
-          "x": -228.0,
-          "y": 112.5,
-          "connections": [],
+          "type_args": {},
+          "x": 421.0,
+          "y": -29.5,
+          "connections": [
+            {
+              "input": 0,
+              "output": {
+                "node": "62bb4b82-d648-4954-9b80-a1a05eefb2c5",
+                "index": 0
+              }
+            }
+          ],
           "values": [
             null,
-            "100.0",
+            "20.0",
             "255.0",
             "Binary"
           ],
-          "id": "d2c90302-4e58-4fbf-bdbb-eb025ded02d8"
+          "id": "8a2603b9-eabd-44c4-b3a4-d1b939eec697"
         }
       ]
     }

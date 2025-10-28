@@ -1,4 +1,4 @@
-from PySide6.QtGui import QAction
+from PySide6.QtGui import QAction, Qt
 from PySide6.QtWidgets import (
     QGraphicsSceneMouseEvent,
     QInputDialog,
@@ -66,8 +66,8 @@ class AddNodeMenu(QMenu):
         params = {}
         if self._actions[res] == SourceNode:
             color, ok = QInputDialog.getItem(None, "Parameters"
-                                            , "Colortype", ["Color", "Gray"],
-                                            0, False)
+                                            , "Colortype", ["Color", "Gray"], 0
+                                            , False, Qt.WindowType.WindowStaysOnTopHint)
             if ok:
                 value, ok = QInputDialog.getInt(None, "Set number of frames", "Number of frames:", 1, 1, 10, 1)
                 if ok:

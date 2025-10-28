@@ -154,3 +154,65 @@ QLabel#TaskLabelClicked {
     font-weight: bold;
     color: #7aa4ff;
 }
+
+
+/* ----- QComboBox ----- */
+QComboBox {
+    background-color: #3b3b3b;
+    color: #f0f0f0;
+    border: 1px solid #555555;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-family: "Inter", "Segoe UI", sans-serif;
+    font-size: 12px;
+}
+
+QComboBox:hover {
+    border: 1px solid #5d85c7;          /* soft blue accent */
+    background-color: #444444;
+}
+
+QComboBox:focus {
+    border: 1px solid #5d85c7;
+    background-color: #2b2b2b;
+}
+
+QComboBox:disabled {
+    background-color: #2a2a2a;
+    color: #777777;
+    border: 1px dashed #444444;
+}
+
+/* Popup menu */
+QComboBox QAbstractItemView {
+    background-color: #2b2b2b;
+    border: 1px solid #555555;
+    selection-background-color: #5d85c7;
+    selection-color: white;
+}
+
+/* ----- QGraphicsView ----- */
+QGraphicsView {
+    background-color: #2b2b2b;      /* same as app background */
+    border: 1px solid #444444;      /* subtle outline */
+    border-radius: 6px;
+    outline: none;
+}
+
+/* Remove focus glow */
+QGraphicsView:focus {
+    border: 1px solid #5d85c7;      /* subtle accent highlight */
+}
+
+/* Optional scrollbars */
+QScrollBar:horizontal, QScrollBar:vertical {
+    background: #333333;
+    border: none;
+    margin: 0px;
+}
+QScrollBar::handle:hover {
+    background: #5d85c7;
+}
+QScrollBar::add-line, QScrollBar::sub-line {
+    background: none;
+}

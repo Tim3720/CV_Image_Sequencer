@@ -1,6 +1,7 @@
-from PySide6.QtCore import Slot, Signal
+from PySide6.QtCore import QRectF, Slot, Signal
 from PySide6.QtGui import Qt
 from PySide6.QtWidgets import (
+    QGraphicsItem,
     QGraphicsScene,
     QGraphicsSceneMouseEvent,
 )
@@ -20,6 +21,8 @@ class WorkflowScene(QGraphicsScene):
         self.temp_connection: Connection | None = None
         self.start_port: IOPort | None = None
 
+        self.margin = 10
+
         self.source_manager = source_manager
         self.node_manager = node_manager
         # self.node_visulisations: list[NodeVis] = []
@@ -29,6 +32,8 @@ class WorkflowScene(QGraphicsScene):
 
     def add_node(self, node_vis: NodeVis, x: float = 0, y: float = 0):
         self.addItem(node_vis)
+        node_vis.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
+        node_vis.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, True)
 
         c_x = x - node_vis.rect().width() / 2
         c_y = y - node_vis.rect().height() / 2
@@ -136,11 +141,29 @@ class WorkflowScene(QGraphicsScene):
         for connection in self.connections:
             connection.update_path()
 
+    def itemMoved(self, item):
+        """
+        Call this whenever an item moves.
+        Expands the sceneRect if item is out of bounds.
+        """
+        rect = self.sceneRect()
+        pos = item.sceneBoundingRect()
+        
+        left = min(rect.left(), pos.left() - self.margin)
+        top = min(rect.top(), pos.top() - self.margin)
+        right = max(rect.right(), pos.right() + self.margin)
+        bottom = max(rect.bottom(), pos.bottom() + self.margin)
+        
+        new_rect = QRectF(left, top, right-left, bottom-top)
+        if new_rect != rect:
+            self.setSceneRect(new_rect)
+
     def mouseMoveEvent(self, event):
         if self.temp_connection and self.start_port:
             self.temp_connection.update_temp_path(
                 self.start_port.scenePos(), event.scenePos()
             )
+
         super().mouseMoveEvent(event)
 
 

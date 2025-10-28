@@ -1,0 +1,71 @@
+{
+  "nodes": [
+    {
+      "type": "GrayScaleSourceNode",
+      "type_args": {
+        "n_frames": 4
+      },
+      "x": -403.5,
+      "y": 142.5,
+      "connections": [],
+      "values": [
+        "0"
+      ],
+      "id": "7ef5aa63-4e6a-49b9-88f8-480e6f4e834c"
+    },
+    {
+      "type": "MinNode",
+      "type_args": {},
+      "x": -100.0,
+      "y": 56.5,
+      "connections": [
+        {
+          "input": 0,
+          "output": {
+            "node": "7ef5aa63-4e6a-49b9-88f8-480e6f4e834c",
+            "index": 0
+          }
+        },
+        {
+          "input": 1,
+          "output": {
+            "node": "7ef5aa63-4e6a-49b9-88f8-480e6f4e834c",
+            "index": 1
+          }
+        }
+      ],
+      "values": [
+        null,
+        null
+      ],
+      "id": "6fb133b8-d07f-4282-95d3-1d2bfae1d727"
+    },
+    {
+      "type": "MinNode",
+      "type_args": {},
+      "x": -101.0,
+      "y": 227.5,
+      "connections": [
+        {
+          "input": 0,
+          "output": {
+            "node": "7ef5aa63-4e6a-49b9-88f8-480e6f4e834c",
+            "index": 2
+          }
+        },
+        {
+          "input": 1,
+          "output": {
+            "node": "7ef5aa63-4e6a-49b9-88f8-480e6f4e834c",
+            "index": 3
+          }
+        }
+      ],
+      "values": [
+        null,
+        null
+      ],
+      "id": "70492524-08fa-4b58-8780-a85abe64f684"
+    }
+  ]
+}

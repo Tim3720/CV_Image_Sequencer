@@ -7,6 +7,7 @@ import uuid
 
 class SourceNode(Node):
     def __init__(self, source_manager: SourceManager, n_frames: int = 1, id: str = "") -> None:
+        self.n_frames = n_frames
         workflow = GetFrame(source_manager, n_frames)
         outputs = []
         self.id = id if id else str(uuid.uuid4())
@@ -33,6 +34,7 @@ For example:
 
 class GrayScaleSourceNode(Node):
     def __init__(self, source_manager: SourceManager, n_frames: int = 1, id: str = "") -> None:
+        self.n_frames = n_frames
         self.id = id if id else str(uuid.uuid4())
         workflow = GetFrameGray(source_manager, n_frames)
         outputs = []

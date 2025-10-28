@@ -250,6 +250,7 @@ def create_proxy(parent: QGraphicsItem, widget: QWidget, x: float, y: float, w: 
     proxy = QGraphicsProxyWidget(parent)
     proxy.setWidget(widget)
     proxy.setGeometry(x, y, w, h)
+    return proxy
 
 def create_proxy_no_position(parent: QGraphicsItem, widget: QWidget):
     proxy = QGraphicsProxyWidget(parent)
