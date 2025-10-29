@@ -1,0 +1,39 @@
+{
+  "nodes": [
+    {
+      "type": "GrayScaleSourceNode",
+      "type_args": {
+        "n_frames": 1
+      },
+      "x": 571.5,
+      "y": 175.5,
+      "connections": [],
+      "values": [
+        "0"
+      ],
+      "id": "ca59e6e6-74b6-4621-bded-9c10feb7c1c2"
+    },
+    {
+      "type": "ThresholdNode",
+      "type_args": {},
+      "x": 963.0,
+      "y": 107.5,
+      "connections": [
+        {
+          "input": 0,
+          "output": {
+            "node": "ca59e6e6-74b6-4621-bded-9c10feb7c1c2",
+            "index": 0
+          }
+        }
+      ],
+      "values": [
+        null,
+        "100.0",
+        "255.0",
+        "Binary"
+      ],
+      "id": "2182fbeb-f41c-4a25-8d4e-2ab96488c9b7"
+    }
+  ]
+}

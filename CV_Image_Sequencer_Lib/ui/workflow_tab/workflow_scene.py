@@ -56,6 +56,7 @@ class WorkflowScene(QGraphicsScene):
 
             self.nodes_to_connections.pop(node_vis.node)
         self.removeItem(node_vis)
+        node_vis.deleteLater()
 
     @Slot()
     def port_clicked(self):
@@ -83,6 +84,23 @@ class WorkflowScene(QGraphicsScene):
             if success:
                 self.temp_connection = None
                 self.start_port = None
+
+    def create_connections(self, start: IOPort, stop: IOPort):
+        connection = Connection(start)
+        self.addItem(connection)
+
+        if not start.parent_node in self.nodes_to_connections:
+            self.nodes_to_connections[start.parent_node] = []
+        if not stop.parent_node in self.nodes_to_connections:
+            self.nodes_to_connections[stop.parent_node] = []
+
+        self.nodes_to_connections[start.parent_node].append(connection)
+        self.nodes_to_connections[stop.parent_node].append(connection)
+        self.connections_to_nodes[connection] = (start.parent_node, stop.parent_node)
+
+        connection.connect_path(stop)
+        self.connections.append(connection)
+        connection.delete_connection_sigal.connect(self.delete_connection)
 
     def connect_nodes(self, start: IOPort, stop: IOPort, connection: Connection | None =
                       None, run_data_update: bool = True) -> bool:

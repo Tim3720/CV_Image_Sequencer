@@ -1,6 +1,8 @@
-from dataclasses import asdict, replace
+from typing import override
 from PySide6.QtCore import QObject, Signal
 import uuid
+
+from cv2 import connectedComponents
 
 from ..utils.type_base import Serializable 
 
@@ -140,4 +142,63 @@ class Node(QObject, Serializable):
         for i, output in enumerate(self.outputs):
             output.data_updated(self.data[i])
         self.output_updated_signal.emit()
+
+class BlackBoxNode(Node):
+
+    def __init__( self, nodes: list[Node], name: str, id: str = "") -> None:
+        self.nodes = nodes
+        self.id = id if id else str(uuid.uuid4())
+
+        blackbox_inputs: list[InPut] = []
+        blackbox_outputs: list[OutPut] = []
+        connected_outputs = []
+
+        input_nodes: list[Node] = []
+        output_nodes: list[Node] = []
+        # find all inputs without connections:
+        for node in self.nodes:
+            for i in node.inputs:
+                if i.connected_output is None:
+                    blackbox_inputs.append(i)
+                    if not node in input_nodes:
+                        input_nodes.append(node)
+                else:
+                    connected_outputs.append(i.connected_output)
+
+        for node in self.nodes:
+            for o in node.outputs:
+                if not o in connected_outputs:
+                    blackbox_outputs.append(o)
+                    output_nodes.append(node)
+
+        print(input_nodes)
+        print(output_nodes)
+
+        
+        # create auxiliary inputs/outputs
+        inputs = []
+        for node in input_nodes:
+            node_inputs = []
+            for i in node.inputs:
+                aux_input = InPut(i.label, i.data, self.id, i.show_input)
+                node_inputs.append(aux_input)
+                i.computation_trigger_signal.disconnect(node.run_workflow)
+                aux_input.computation_trigger_signal.connect(node.run_workflow)
+                aux_input.index = i.index
+                del i
+            node.inputs = node_inputs
+            inputs.extend(node_inputs)
+
+        outputs = []
+        for node in output_nodes:
+            node_outputs = []
+            for o in node.outputs:
+                aux_output = OutPut(o.label, o.data, self.id, o.show_output)
+                node_outputs.append(aux_output)
+                aux_output.index = o.index
+                del o
+            node.outputs = node_outputs
+            outputs.extend(node_outputs)
+
+        super().__init__(inputs, outputs, name, Workflow(len(inputs)), self.id)
 

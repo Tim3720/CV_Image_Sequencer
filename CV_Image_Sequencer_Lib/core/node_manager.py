@@ -2,7 +2,8 @@ from PySide6.QtCore import QObject, Signal
 
 from ..utils.source_manager import SourceManager
 
-from ..core.node_base import InPut, Node, OutPut
+from ..utils.type_base import Serializable
+from ..core.node_base import BlackBoxNode, InPut, Node, OutPut
 from ..core.nodes import GrayScaleSourceNode, SourceNode
 
 
@@ -19,13 +20,24 @@ class NodeManager(QObject):
         self.nodes: list[Node] = []
         self.output_connections: dict[OutPut, list[InPut]] = {}
 
-    def add_node(self, node_type: type, **kwargs) -> Node:
+    def create_node(self, node_type: type, **kwargs) -> Node:
         id = kwargs["id"] if "id" in kwargs else ""
         if node_type == SourceNode or node_type == GrayScaleSourceNode:
             n_frames = kwargs["n_frames"] if "n_frames" in kwargs else 3
             node = node_type(self.source_manager, n_frames, id=id)
+        elif node_type == BlackBoxNode:
+            print(kwargs["nodes"])
+            if kwargs["nodes"] and issubclass(type(kwargs["nodes"][0]), Node):
+                nodes = kwargs["nodes"]
+            else:
+                nodes = [self.create_node(Serializable._registry[node["type"]], id=node["id"], **node["type_args"]) for node in kwargs["nodes"]]
+            node = BlackBoxNode(nodes, kwargs["name"], id)
         else:
             node = node_type(id=id)
+        return node
+
+    def add_node(self, node_type: type, **kwargs) -> Node:
+        node = self.create_node(node_type, **kwargs)
         self.nodes.append(node)
         return node
 

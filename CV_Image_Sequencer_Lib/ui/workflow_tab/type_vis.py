@@ -1,8 +1,10 @@
+from typing import Type
 from PySide6.QtWidgets import (QCheckBox, QGraphicsItem, QGraphicsProxyWidget, QHBoxLayout, QLineEdit, QWidget, QLabel, QComboBox)
+from numpy import ScalarType
 from ...assets.styles.style import STYLE
 from ...core.nodes import OutPut, InPut
 from ...utils.types import Bool, DictType, Float, Int, Scalar
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, Slot
 
 def port_label(text: str) -> QLabel:
     label = QLabel(text)
@@ -52,11 +54,14 @@ class EnumVisInput(QWidget):
                 }}
         """)
 
-        self.dropdown.currentTextChanged.connect(lambda x:
-                                            self.port.data_update(self.port.data.set_value(x)))
+        self.dropdown.currentTextChanged.connect(self._set_value)
 
         layout.addWidget(label)
         layout.addWidget(self.dropdown)
+
+    @Slot(str)
+    def _set_value(self, value: str):
+        self.port.data_update(self.port.data.set_value(value))
 
     def set_value(self, value: str):
         self.dropdown.setCurrentText(value)
@@ -193,19 +198,22 @@ class ScalarVisOutput(QWidget):
 
         label = port_label(self.port.label)
 
-        edit = QLabel()
-        edit.setFixedWidth(50)
+        self.edit = QLabel()
+        self.edit.setFixedWidth(50)
 
-        edit.setStyleSheet("""
+        self.edit.setStyleSheet("""
                 QLabel {
                     font-size: 11px;
                     border: 2px solid #333;
                 }
         """)
 
-        layout.addWidget(edit, alignment=Qt.AlignmentFlag.AlignRight)
+        layout.addWidget(self.edit, alignment=Qt.AlignmentFlag.AlignRight)
         layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignRight)
-        self.port.computation_finished_signal.connect(lambda x: edit.setText(str(x.value)))
+        self.port.computation_finished_signal.connect(self.update_text)
+
+    def update_text(self, text):
+        self.edit.setText(str(text.value))
 
 
 class BoolVis(QWidget):
@@ -231,13 +239,20 @@ class BoolVis(QWidget):
         if isinstance(self.port, InPut):
             layout.addWidget(label)
             layout.addWidget(self.checkbox)
-            self.checkbox.checkStateChanged.connect(lambda : self.port.data_update(Bool(value=self.checkbox.isChecked())))
+            self.checkbox.checkStateChanged.connect(self._get_value)
         else:
             layout.addWidget(self.checkbox)
             layout.addWidget(label)
             self.checkbox.setEnabled(False)
-            self.port.computation_finished_signal.connect(lambda x: self.checkbox.setChecked(x.value))
+            self.port.computation_finished_signal.connect(self._set_value)
+
+    def _get_value(self):
+        if isinstance(self.port, InPut):
+            self.port.data_update(Bool(value=self.checkbox.isChecked()))
     
+    def _set_value(self, value: Type):
+        self.checkbox.setChecked(value.value)
+
     def set_value(self, value: bool):
         self.checkbox.setChecked(value)
 

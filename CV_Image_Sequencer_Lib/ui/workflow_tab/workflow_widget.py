@@ -1,3 +1,4 @@
+from typing import override
 import cv2 as cv
 import numpy as np
 from PySide6.QtCore import Signal, Slot
@@ -93,6 +94,9 @@ class WorkflowWidget(QWidget):
         node_vis = NodeVis(node)
         self.node_visulisations.append(node_vis)
         self.scene.add_node(node_vis, x, y)
+        # deselect all other nodes:
+        for n in self.node_visulisations:
+            n.setSelected(False)
         node_vis.setSelected(True)
 
         node_vis.double_clicked_signal.connect(self.update_frame)

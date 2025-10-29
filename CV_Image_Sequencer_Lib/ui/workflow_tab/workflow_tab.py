@@ -1,13 +1,13 @@
-from PySide6.QtWidgets import QFileDialog, QPushButton, QSplitter, QWidget, QLabel, QVBoxLayout, QHBoxLayout
+from PySide6.QtWidgets import QFileDialog, QInputDialog, QPushButton, QSplitter, QWidget, QLabel, QVBoxLayout, QHBoxLayout
 from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt, QSize
-from cv2 import DrawMatchesFlags_DRAW_OVER_OUTIMG
 import numpy as np
 import json
 
-from CV_Image_Sequencer_Lib.core import workflow_base
-from CV_Image_Sequencer_Lib.core.node_base import InPut
-from CV_Image_Sequencer_Lib.core.nodes import GrayScaleSourceNode, SourceNode
+from .node_vis import NodeVis
+
+from ...core.node_base import BlackBoxNode, Node
+from ...core.nodes import GrayScaleSourceNode, SourceNode
 
 from ...utils.type_base import Serializable
 from ...assets.styles.style import STYLE
@@ -59,12 +59,16 @@ class WorkflowTabWidget(QWidget):
         button_bar_layout = QHBoxLayout(button_bar)
         button_bar_layout.setContentsMargins(0, 0, 0, 0)
 
+        create_blackbox_button = QPushButton("Create blackbox")
+        create_blackbox_button.clicked.connect(self.create_blackbox)
+
         save_workflow_button = QPushButton("Save workflow")
         save_workflow_button.clicked.connect(self.save_workflow)
 
         load_workflow_button = QPushButton("Load workflow")
         load_workflow_button.clicked.connect(self.load_workflow)
 
+        button_bar_layout.addWidget(create_blackbox_button)
         button_bar_layout.addWidget(save_workflow_button)
         button_bar_layout.addWidget(load_workflow_button)
 
@@ -82,47 +86,58 @@ class WorkflowTabWidget(QWidget):
         pixmap_scaled = pixmap.scaled(self.org_img_size, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
         self.frame_label.setPixmap(pixmap_scaled)
 
+    def node_to_dict(self, node: Node) -> dict:
+        d = {}
+        d["type"] = node.__class__.__name__
+        d["type_args"] = {}
+        if isinstance(node, SourceNode) or isinstance(node, GrayScaleSourceNode):
+            d["type_args"]["n_frames"] = node.n_frames
+        elif isinstance(node, BlackBoxNode):
+            d["type_args"]["nodes"] = [self.node_to_dict(node_vis) for node_vis in
+                                       node.nodes]
+            d["type_args"]["name"] = node.name
+
+        d["connections"] = []
+        d["values"] = []
+        d["id"] = node.id
+        for i in node.inputs:
+            if i.connected_output is not None:
+                d["connections"].append({"input": i.index, "output": {"node": i.connected_output.parent_id,
+                                                                  "index": i.connected_output.index} })
+        for i in node.inputs:
+            if i.data.value is None:
+                d["values"].append(None)
+            else:
+                d["values"].append(i.data.value)
+        return d
+
     def save_state(self) -> dict:
         nodes = self.workflow_widget.get_current_state()
         state = {}
         state["nodes"] = []
-        for node in nodes:
-            d = {}
-            d["type"] = node.node.__class__.__name__
-            d["type_args"] = {}
-            if isinstance(node.node, SourceNode) or isinstance(node.node, GrayScaleSourceNode):
-                d["type_args"]["n_frames"] = node.node.n_frames
-
-            pos = node.pos()
+        for node_vis in nodes:
+            d = self.node_to_dict(node_vis.node)
+            pos = node_vis.pos()
             d["x"] = pos.x()
             d["y"] = pos.y()
-            d["connections"] = []
-            d["values"] = []
-            d["id"] = node.node.id
-            for i in node.node.inputs:
-                if i.connected_output is not None:
-                    d["connections"].append({"input": i.index, "output": {"node": i.connected_output.parent_id,
-                                                                      "index": i.connected_output.index} })
-            for i in node.input_ports:
-                if i.data_widget is None:
-                    d["values"].append(None)
-                else:
-                    d["values"].append(getattr(i.data_widget, "get_value")())
             state["nodes"].append(d)
         return state
 
 
     def load_state(self, d: dict):
+        old_index = len(self.workflow_widget.node_visulisations)
         for node in d["nodes"]:
             self.workflow_widget.add_node(Serializable._registry[node["type"]], id=node["id"], **node["type_args"])
             self.workflow_widget.node_visulisations[-1].setPos(node["x"], node["y"])
 
-        nodes = self.workflow_widget.node_visulisations
+        nodes = self.workflow_widget.node_visulisations[old_index:]
         nodes_id = {node.node.id: node for node in nodes}
         for i, node in enumerate(d["nodes"]):
             connections = node["connections"]
             for connection in connections:
-                self.workflow_widget.scene.connect_nodes(nodes[i].input_ports[connection["input"]],
+                self.workflow_widget.node_manager.connect_nodes(nodes[i].input_ports[connection["input"]],
+                                                      nodes_id[connection["output"]["node"]].output_ports[connection["output"]["index"]])
+                self.workflow_widget.scene.create_connections(nodes[i].input_ports[connection["input"]],
                                                       nodes_id[connection["output"]["node"]].output_ports[connection["output"]["index"]])
 
         for node in d["nodes"]:
@@ -133,6 +148,11 @@ class WorkflowTabWidget(QWidget):
 
         for node_vis in self.workflow_widget.node_visulisations:
             self.workflow_widget.scene.itemMoved(node_vis)
+            node_vis.setSelected(False)
+
+        # set all newly added nodes as selected:
+        for node_vis in self.workflow_widget.node_visulisations[old_index:]:
+            node_vis.setSelected(True)
 
     def save_workflow(self):
         workflow = self.save_state()
@@ -156,3 +176,11 @@ class WorkflowTabWidget(QWidget):
             self.load_state(workflow)
         except:
             pass
+
+    def create_blackbox(self):
+        nodes: list[NodeVis] = [node_vis for node_vis in self.workflow_widget.node_visulisations if node_vis.isSelected()]
+        name, ok = QInputDialog.getText(None, "Name for blackbox", "Name:")
+        if not ok:
+            return
+
+        self.workflow_widget.add_node(BlackBoxNode, nodes=[node.node for node in nodes], name=name)
