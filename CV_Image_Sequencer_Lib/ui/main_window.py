@@ -24,8 +24,9 @@ class CVImageSequencerWidget(QWidget):
 
         main_layout.addWidget(self.tab_widget, 4)
 
-        self.tab_widget.load()
+        # self.tab_widget.load()
 
     def on_quit(self):
-        self.tab_widget.save()
+        # self.tab_widget.save()
+        ...
 

@@ -1,5 +1,6 @@
+from uuid import UUID
 from PySide6.QtWidgets import (QGraphicsEllipseItem, QGraphicsItem, QGraphicsPathItem,
-                               QGraphicsRectItem, QGraphicsTextItem, QLabel, QHBoxLayout, QPushButton, QWidget)
+                               QGraphicsRectItem, QGraphicsTextItem, QLabel, QHBoxLayout, QWidget, QGraphicsProxyWidget)
 from PySide6.QtGui import QPainterPathStroker, QPen, QBrush, QColor, QPainterPath
 from PySide6.QtCore import QObject, QPointF, Qt, Signal
 
@@ -7,76 +8,107 @@ from ...assets.styles.style import STYLE
 from ...ui.styled_widgets import StyledButton
 from .help_dialog import HelpDialog
 
-from .type_vis import (BoolVis, EnumVisInput, EnumVisOutput, ScalarVisInput, ScalarVisOutput, create_proxy_no_position, create_proxy)
-from ...core.node_base import Node, OutPut, InPut
+from .type_vis import (BoolVis, EnumVisInput, EnumVisOutput, ScalarVisInput, ScalarVisOutput)
+from ...core.node_base import Node, DataNode, ComputationalNode, SourceNode
 from ...utils.types import Bool, DictType, Scalar
 
 
-class IOPort(QObject, QGraphicsEllipseItem):
-    port_press_signal = Signal()
+def create_proxy(parent: QGraphicsItem, widget: QWidget, x: float, y: float, w: float, h: float):
+    proxy = QGraphicsProxyWidget(parent)
+    proxy.setWidget(widget)
+    proxy.setGeometry(x, y, w, h)
+    return proxy
 
-    def __init__(self, port: OutPut | InPut, x, y, parent, parent_node: Node) -> None:
+def create_proxy_no_position(parent: QGraphicsItem, widget: QWidget):
+    proxy = QGraphicsProxyWidget(parent)
+    proxy.setWidget(widget)
+    return proxy
+
+
+
+class IOPort(QObject, QGraphicsEllipseItem):
+
+    port_press_signal = Signal(object) # tuple(parent_uuid, port_idx)
+
+    def __init__(self, node: DataNode, is_input: bool, x, y, parent: "NodeVis",
+                 parent_node_uuid: UUID, index: int) -> None:
         QObject.__init__(self)
         radius = 10
         QGraphicsEllipseItem.__init__(self, -radius/2, -radius/2, radius, radius, parent)
 
-        self.parent = parent
-        self.parent_node = parent_node
-        self.port = port
+        self.parent_node_vis = parent
+        self.node = node
+        self.is_input = is_input
+        self.parent_node_uuid = parent_node_uuid
+        self.index = index
+        self.pos_x = x
+        self.pos_y = y
 
-        self.color = QColor.fromRgb(*port.data.color)
-
-        self.data_widget = None
-        if issubclass(type(port.data), DictType): # enum like
-            if isinstance(port, OutPut):
-                self.data_widget = EnumVisOutput(port)
-            else:
-                self.data_widget = EnumVisInput(port)
-            proxy = create_proxy_no_position(self, self.data_widget)
-        elif issubclass(type(port.data), Scalar):
-            if isinstance(port, OutPut):
-                self.data_widget = ScalarVisOutput(port)
-            else:
-                self.data_widget = ScalarVisInput(port)
-            proxy = create_proxy_no_position(self, self.data_widget)
-        elif isinstance(port.data, Bool):
-            self.data_widget = BoolVis(port)
-            proxy = create_proxy_no_position(self, self.data_widget)
+        if isinstance(self.node, SourceNode):
+            self.data_type = self.node.output_nodes[0].data_type
         else:
-            proxy = QGraphicsTextItem(port.label)
+            self.data_type = self.node.data_type
+        
+        self.color = QColor.fromRgb(*self.data_type.color)
+        self.init_ui()
+
+    def init_ui(self):
+        self.data_widget = None
+        if issubclass(self.data_type, DictType): # enum like
+            if self.is_input:
+                self.data_widget = EnumVisInput(self.node)
+            else:
+                self.data_widget = EnumVisOutput(self.node)
+            proxy = create_proxy_no_position(self, self.data_widget)
+
+        elif issubclass(self.data_type, Scalar):
+            if self.is_input:
+                self.data_widget = ScalarVisInput(self.node)
+            else:
+                self.data_widget = ScalarVisOutput(self.node)
+            proxy = create_proxy_no_position(self, self.data_widget)
+
+        elif self.node.data_type == Bool:
+            self.data_widget = BoolVis(self.node)
+            proxy = create_proxy_no_position(self, self.data_widget)
+
+        else:
+            proxy = QGraphicsTextItem(self.node.name)
             proxy.setDefaultTextColor(QColor(STYLE["textcolor"]))
             proxy.setParentItem(self)
 
-        if isinstance(port, OutPut):
-            proxy.setPos(self.rect().x() - proxy.boundingRect().width() - 5 ,
+        if self.is_input:
+            proxy.setPos(self.rect().x() + self.rect().width() + 5,
                          self.rect().y() + (self.rect().height() - proxy.boundingRect().height()) / 2)
         else:
-            proxy.setPos(self.rect().x() + self.rect().width() + 5,
+            proxy.setPos(self.rect().x() - proxy.boundingRect().width() - 5 ,
                          self.rect().y() + (self.rect().height() - proxy.boundingRect().height()) / 2)
 
         self.setBrush(QBrush(self.color))
         self.setPen(QPen(QColor("#222222"), 1))
         self.setZValue(2)
-        self.setPos(x, y)
+        self.setPos(self.pos_x, self.pos_y)
 
         self.width = proxy.boundingRect().width()
 
 
     def mousePressEvent(self, event) -> None:
-        self.port_press_signal.emit()
+        self.port_press_signal.emit((self.parent_node_vis.node_uuid, self.index))
         return super().mousePressEvent(event)
 
 
 class NodeVis(QObject, QGraphicsRectItem):
+
     node_position_changed_signal = Signal()
-    double_clicked_signal = Signal(object)
+    double_clicked_signal = Signal(UUID)
     delete_signal = Signal(object)
 
-    def __init__(self, node: Node, width=120, height=60):
+    def __init__(self, node: ComputationalNode, node_uuid: UUID, width=120, height=60):
         QObject.__init__(self)
         QGraphicsRectItem.__init__(self, 0, 0, width, height)
 
-        self.node = node
+        self.node: ComputationalNode = node
+        self.node_uuid = node_uuid
         self.input_ports: list[IOPort] = []
         self.output_ports: list[IOPort] = []
 
@@ -132,17 +164,16 @@ class NodeVis(QObject, QGraphicsRectItem):
         ########################
         y = 37
         max_width = proxy.rect().width()
-        for o in self.node.outputs:
-            output_port = IOPort(o, self.rect().width(), y,
-                                 parent=self, parent_node=self.node)
+        for idx, node in enumerate(self.node.output_nodes):
+            output_port = IOPort(node, False, self.rect().width(), y, self, self.node_uuid, idx)
+
             self.output_ports.append(output_port)
             y += output_port.rect().height() + 12
             if output_port.width > max_width:
                 max_width = output_port.width
 
-        for i in self.node.inputs:
-            input_port = IOPort(i, 0, y, parent=self,
-                                parent_node=self.node)
+        for idx, node in enumerate(self.node.input_nodes):
+            input_port = IOPort(node, True, 0, y, self, self.node_uuid, idx)
             self.input_ports.append(input_port)
             y += input_port.rect().height() + 12
             if input_port.width > max_width:
@@ -158,8 +189,8 @@ class NodeVis(QObject, QGraphicsRectItem):
         name_rect.setBrush(QBrush(QColor(STYLE["top_bar"])))
         name_rect.setPen(QPen(self.border_default, 0))
 
-        for o in self.output_ports:
-            o.setPos(self.rect().width(), o.pos().y())
+        for node in self.output_ports:
+            node.setPos(self.rect().width(), node.pos().y())
 
     def show_help(self):
         dialog = HelpDialog(self.node.name + " Help", self.node.help_text)
@@ -183,7 +214,7 @@ class NodeVis(QObject, QGraphicsRectItem):
         return super().itemChange(change, value)
 
     def mouseDoubleClickEvent(self, event) -> None:
-        self.double_clicked_signal.emit(self.node)
+        self.double_clicked_signal.emit(self.node_uuid)
         return super().mouseDoubleClickEvent(event)
 
     def lock_movement(self):
@@ -199,58 +230,4 @@ class NodeVis(QObject, QGraphicsRectItem):
             getattr(self.scene(), "itemMoved")(self)
 
 
-class Connection(QObject, QGraphicsPathItem):
-    delete_connection_sigal = Signal(object)
 
-    def __init__(self, start_port: IOPort):
-        QObject.__init__(self)
-        QGraphicsPathItem.__init__(self)
-        self.start_port: IOPort = start_port
-        self.end_port: IOPort | None = None
-        self.setPen(QPen(QColor.fromRgb(*start_port.port.data.color), 2))
-        self.update_temp_path(start_port.scenePos(), start_port.scenePos())
-        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemStacksBehindParent, True)
-
-    def shape(self):
-        path = super().shape()
-        stroker = QPainterPathStroker()
-        stroker.setWidth(10)  # clickable area 10px wide
-        return stroker.createStroke(path)
-
-    def update_temp_path(self, start, end):
-        path = QPainterPath()
-        path.moveTo(start)
-        dx = (end.x() - start.x()) * 0.5
-        control1 = QPointF(start.x() + dx, start.y())
-        control2 = QPointF(end.x() - dx, end.y())
-        path.cubicTo(control1, control2, end)
-        self.setPath(path)
-
-    def update_path(self):
-        if self.end_port is None:
-            return
-        start = self.start_port.scenePos()
-        end = self.end_port.scenePos()
-        path = QPainterPath()
-        path.moveTo(start)
-        dx = (end.x() - start.x()) * 0.5
-        control1 = QPointF(start.x() + dx, start.y())
-        control2 = QPointF(end.x() - dx, end.y())
-        path.cubicTo(control1, control2, end)
-        self.setPath(path)
-
-    def disconnect_path(self):
-        if self.end_port is None:
-            return
-
-        self.end_port = None
-
-    def connect_path(self, end_port: IOPort):
-        self.end_port = end_port
-        self.update_path()
-
-    def mousePressEvent(self, event) -> None:
-        if event.button() == Qt.MouseButton.RightButton and self.end_port is not None:
-            self.delete_connection_sigal.emit(self)
-        else:
-            return super().mousePressEvent(event)

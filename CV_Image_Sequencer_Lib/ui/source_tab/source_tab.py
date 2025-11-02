@@ -3,6 +3,8 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtCore import QSize, Qt, Signal, Slot
 import numpy as np
 
+from CV_Image_Sequencer_Lib.utils.types import Image3C
+
 from ...assets.styles.style import STYLE
 from ...utils.source_manager import SourceManager, convert_cv_to_qt
 from ..styled_widgets import StyledButton
@@ -97,10 +99,12 @@ class SourcePlayerTab(QWidget):
         self.previous_frame_button.setDisabled(self.playing_video)
 
 
-    @Slot(np.ndarray)
-    def update_frame(self, frame: np.ndarray):
+    @Slot(Image3C)
+    def update_frame(self, frame: Image3C):
         # convert from cv to qt:
-        qimg = convert_cv_to_qt(frame)
+        if frame.value is None:
+            return
+        qimg = convert_cv_to_qt(frame.value)
         pixmap = QPixmap.fromImage(qimg)
         pixmap_scaled = pixmap.scaled(self.img_size, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
         self.video_frame_label.setPixmap(pixmap_scaled)

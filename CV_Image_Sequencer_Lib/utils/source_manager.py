@@ -5,8 +5,10 @@ import cv2 as cv
 from cv2.typing import MatLike
 import numpy as np
 
+from .types import Image1C, Image3C
+
 class SourceManager(QObject):
-    frame_ready = Signal(np.ndarray)
+    frame_ready = Signal(Image3C)
 
     def __init__(self):
         super().__init__()
@@ -56,10 +58,9 @@ class SourceManager(QObject):
                                            self.image_files[self.current_frame_idx]))
 
         self.current_frame = frame
-        self.frame_ready.emit(frame)
+        self.frame_ready.emit(Image3C(value=frame))
 
     def get_next_n_frames(self, n, offset: int = 0, grayscale: bool = False):
-
         indices = []
         for i in range(n):
             new_index = self.current_frame_idx + i + offset
@@ -79,7 +80,9 @@ class SourceManager(QObject):
                 if not ret:
                     return self.stop()
                 if grayscale:
-                    frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+                    frame = Image1C(value=cv.cvtColor(frame, cv.COLOR_BGR2GRAY))
+                else:
+                    frame = Image3C(value=frame)
                 output.append(frame)
             self.video_capture.set(cv.CAP_PROP_POS_FRAMES, self.current_frame_idx)
         else:
@@ -87,22 +90,22 @@ class SourceManager(QObject):
                 return
             for index in indices:
                 if grayscale:
-                    frame = cv.imread(os.path.join(self.image_directory,
+                    frame = Image1C(value=cv.imread(os.path.join(self.image_directory,
                                                self.image_files[index]),
-                                      cv.IMREAD_GRAYSCALE)
+                                      cv.IMREAD_GRAYSCALE))
                 else:
-                    frame = cv.imread(os.path.join(self.image_directory,
-                                               self.image_files[index]))
+                    frame = Image3C(value=cv.imread(os.path.join(self.image_directory,
+                                               self.image_files[index])))
                 output.append(frame)
         return output
 
 
     def emit_frame(self):
         if self.current_frame is not None:
-            self.frame_ready.emit(self.current_frame)
+            self.frame_ready.emit(Image3C(value=self.current_frame))
 
-    def get_current_frame(self) -> MatLike | None:
-        return self.current_frame
+    def get_current_frame(self) -> Image3C:
+        return Image3C(value=self.current_frame)
 
     def stop(self):
         self.timer.stop()

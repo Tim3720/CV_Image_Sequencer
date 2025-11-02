@@ -32,7 +32,7 @@ class ColorRegistry:
 
 @dataclass
 class IOType(Serializable):
-    data_type: type
+    data_type: type = object
     value: Any | None = None
     default_value = None
 
@@ -48,6 +48,7 @@ class IOType(Serializable):
 
     def __init_subclass__(cls):
         cls.color = ColorRegistry.get_color(cls.__name__)
+
 
 @dataclass
 class DictType(IOType):

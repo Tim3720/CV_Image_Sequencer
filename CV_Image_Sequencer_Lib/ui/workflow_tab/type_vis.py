@@ -1,8 +1,9 @@
 from typing import Type
 from PySide6.QtWidgets import (QCheckBox, QGraphicsItem, QGraphicsProxyWidget, QHBoxLayout, QLineEdit, QWidget, QLabel, QComboBox)
-from numpy import ScalarType
+
+from CV_Image_Sequencer_Lib.utils.type_base import IOType
 from ...assets.styles.style import STYLE
-from ...core.nodes import OutPut, InPut
+from ...core.node_base import DataNode, SourceNode
 from ...utils.types import Bool, DictType, Float, Int, Scalar
 from PySide6.QtCore import Qt, Slot
 
@@ -14,32 +15,34 @@ def port_label(text: str) -> QLabel:
 
 class EnumVisInput(QWidget):
     
-    def __init__(self, port: InPut, parent=None):
+    def __init__(self, node: DataNode, parent=None):
         super().__init__(parent)
+        self.node = node
 
-        self.port = port
+        self.data_type = self.node.data_type
 
         self.init_ui()
 
+
     def init_ui(self):
-        data_type = type(self.port.data)
-        if not issubclass(data_type, DictType): # enum like
+        if self.data_type is None or not issubclass(self.data_type, DictType): # enum like
             raise ValueError("Wrong type passed to port_dropdown")
+
         self.setStyleSheet("background-color: transparent; border: none;")
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
-        label = port_label(self.port.label)
+        label = port_label(self.node.name)
 
         self.dropdown = QComboBox()
-        for option in data_type.value_dict.keys():
+        for option in self.data_type.value_dict.keys():
             self.dropdown.addItem(option, option)
 
-        if data_type.value is not None:
-            self.dropdown.setCurrentText(data_type.value)
+        if self.data_type.value is not None:
+            self.dropdown.setCurrentText(self.data_type.value)
         else:
-            default = data_type.default_value
+            default = self.data_type.default_value
             if default is not None:
                 self.dropdown.setCurrentText(default)
 
@@ -55,13 +58,16 @@ class EnumVisInput(QWidget):
         """)
 
         self.dropdown.currentTextChanged.connect(self._set_value)
+        self.node.data_request_signal.connect(self.on_data_request)
 
         layout.addWidget(label)
         layout.addWidget(self.dropdown)
 
     @Slot(str)
     def _set_value(self, value: str):
-        self.port.data_update(self.port.data.set_value(value))
+        data_type = self.node.output_nodes[0].data_type
+        data = data_type(value=value)
+        # self.node.send_data((data, None), False)
 
     def set_value(self, value: str):
         self.dropdown.setCurrentText(value)
@@ -69,10 +75,18 @@ class EnumVisInput(QWidget):
     def get_value(self):
         return self.dropdown.currentText()
 
+    def on_data_request(self):
+        if self.node.input_node is None:
+            value = self.dropdown.currentText()
+            data_type = self.node.output_nodes[0].data_type
+            data = data_type(value=value)
+            self.node.send_data((data, None), False)
+
+
 
 class EnumVisOutput(QWidget):
     
-    def __init__(self, port: OutPut, parent=None):
+    def __init__(self, port: DataNode | SourceNode, parent=None):
         super().__init__(parent)
 
         self.port = port
@@ -80,17 +94,16 @@ class EnumVisOutput(QWidget):
         self.init_ui()
 
     def init_ui(self):
-        if not isinstance(self.port.data, DictType): # enum like
+        if self.port.data_type != DictType: # enum like
             raise ValueError("Wrong type passed to port_dropdown")
         self.setStyleSheet("background-color: transparent; border: none;")
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
-        label = port_label(self.port.label)
+        label = port_label(self.port.name)
 
-        dropdown = QLabel(self.port.data.value)
-
+        dropdown = QLabel()
         dropdown.setStyleSheet("""
                 QLabel {
                     font-size: 11px;
@@ -98,22 +111,22 @@ class EnumVisOutput(QWidget):
                 }
         """)
 
-
         layout.addWidget(label)
         layout.addWidget(dropdown)
 
 
 class ScalarVisInput(QWidget):
     
-    def __init__(self, port: InPut, parent=None):
+    def __init__(self, port: DataNode | SourceNode, parent=None):
         super().__init__(parent)
         self.port = port
         self.current_text = ""
+        self.current_data: Scalar | None = None
 
         self.init_ui()
 
     def init_ui(self):
-        data_type = type(self.port.data)
+        data_type = self.port.data_type
         if not issubclass(data_type, Scalar): # enum like
             raise ValueError("Wrong type passed to port_line_edit")
         self.setStyleSheet("background-color: transparent; border: none;")
@@ -121,7 +134,7 @@ class ScalarVisInput(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
-        label = port_label(self.port.label)
+        label = port_label(self.port.name)
 
         self.edit = QLineEdit()
         self.edit.setFixedWidth(50)
@@ -136,9 +149,10 @@ class ScalarVisInput(QWidget):
         layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignRight)
         layout.addWidget(self.edit, alignment=Qt.AlignmentFlag.AlignRight)
         self.edit.textChanged.connect(self.on_edit)
-        self.port.computation_trigger_signal.connect(self.on_computation_trigger)
-        if self.port.data.value is not None:
-            self.edit.setText(str(self.port.data.value))
+
+        self.port.data_signal.connect(self.on_computation_trigger)
+        self.port.request_data_signal.connect(self.get_data)
+
         self.current_text = self.edit.text()
 
     def set_style(self, color: str):
@@ -150,27 +164,41 @@ class ScalarVisInput(QWidget):
                 }}
         """)
 
-    def on_computation_trigger(self):
+    @Slot(IOType)
+    def on_computation_trigger(self, data: IOType):
         if not self.edit.hasFocus():
-            self.edit.setText(str(self.port.data.value))
+            self.edit.setText(str(data.value))
 
     def on_edit(self, text: str):
         try:
-            if type(self.port.data) == Float:
+            data_type = self.port.data_type
+            if not issubclass(data_type, Scalar):
+                raise ValueError("Wrong type passed to port_line_edit")
+            if data_type == Float:
                 value = float(text)
-            elif type(self.port.data) == Int:
+            elif data_type == Int:
                 value = int(text)
             else:
                 raise ValueError("Unknown Scalar type passed to ScalarVisInput.")
-            if self.port.data.max_value and value > self.port.data.max_value:
+
+            if data_type.max_value and value > data_type.max_value:
                 self.edit.setText(self.current_text)
-            elif self.port.data.min_value and value < self.port.data.min_value:
+            elif data_type.min_value and value < data_type.min_value:
                 self.edit.setText(self.current_text)
-            self.port.data_update(self.port.data.set_value_from_string(self.edit.text()))
+
+            self.port.on_new_data()
+
             self.current_text = text
             self.set_style(STYLE["textcolor"])
         except:
             self.set_style(STYLE["error"])
+
+    def get_data(self):
+        if not issubclass(self.port.data_type, Scalar):
+            raise ValueError("Wrong type passed to port_line_edit")
+        data = self.port.data_type()
+        data.set_value_from_string(self.edit.text())
+        self.port.send_data(data)
 
     def set_value(self, value: str):
         self.edit.setText(value)
@@ -181,14 +209,14 @@ class ScalarVisInput(QWidget):
 
 class ScalarVisOutput(QWidget):
     
-    def __init__(self, port: OutPut, parent=None):
+    def __init__(self, port: DataNode, parent=None):
         super().__init__(parent)
         self.port = port
 
         self.init_ui()
 
     def init_ui(self):
-        data_type = type(self.port.data)
+        data_type = self.port.data_type
         if not issubclass(data_type, Scalar): # enum like
             raise ValueError("Wrong type passed to port_line_edit")
         self.setStyleSheet("background-color: transparent; border: none;")
@@ -196,7 +224,7 @@ class ScalarVisOutput(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
-        label = port_label(self.port.label)
+        label = port_label(self.port.name)
 
         self.edit = QLabel()
         self.edit.setFixedWidth(50)
@@ -210,33 +238,34 @@ class ScalarVisOutput(QWidget):
 
         layout.addWidget(self.edit, alignment=Qt.AlignmentFlag.AlignRight)
         layout.addWidget(label, alignment=Qt.AlignmentFlag.AlignRight)
-        self.port.computation_finished_signal.connect(self.update_text)
 
-    def update_text(self, text):
+        self.port.data_signal.connect(self.update_text)
+
+    def update_text(self, text: IOType):
         self.edit.setText(str(text.value))
 
 
 class BoolVis(QWidget):
-    def __init__(self, port: InPut | OutPut, parent=None):
+    def __init__(self, port: DataNode, parent=None):
         super().__init__(parent)
         self.port = port
 
         self.init_ui()
 
     def init_ui(self):
-        if not isinstance(self.port.data, Bool):
+        if not self.port.data_type == Bool:
             raise ValueError("Wrong type passed to BoolVis")
         self.setStyleSheet("background-color: transparent; border: none;")
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
 
-        label = port_label(self.port.label)
+        label = port_label(self.port.name)
         self.checkbox = QCheckBox()
         self.checkbox.setStyleSheet("border: 2px solid #333;")
         self.checkbox.setFixedSize(15, 15)
 
-        if isinstance(self.port, InPut):
+        if self.port.is_input:
             layout.addWidget(label)
             layout.addWidget(self.checkbox)
             self.checkbox.checkStateChanged.connect(self._get_value)
@@ -244,11 +273,11 @@ class BoolVis(QWidget):
             layout.addWidget(self.checkbox)
             layout.addWidget(label)
             self.checkbox.setEnabled(False)
-            self.port.computation_finished_signal.connect(self._set_value)
+            self.port.data_signal.connect(self._set_value)
 
     def _get_value(self):
-        if isinstance(self.port, InPut):
-            self.port.data_update(Bool(value=self.checkbox.isChecked()))
+        if self.port.is_input:
+            self.port.send_data(Bool(value=self.checkbox.isChecked()))
     
     def _set_value(self, value: Type):
         self.checkbox.setChecked(value.value)
@@ -258,17 +287,4 @@ class BoolVis(QWidget):
 
     def get_value(self):
         return self.checkbox.isChecked()
-
-
-
-def create_proxy(parent: QGraphicsItem, widget: QWidget, x: float, y: float, w: float, h: float):
-    proxy = QGraphicsProxyWidget(parent)
-    proxy.setWidget(widget)
-    proxy.setGeometry(x, y, w, h)
-    return proxy
-
-def create_proxy_no_position(parent: QGraphicsItem, widget: QWidget):
-    proxy = QGraphicsProxyWidget(parent)
-    proxy.setWidget(widget)
-    return proxy
 
