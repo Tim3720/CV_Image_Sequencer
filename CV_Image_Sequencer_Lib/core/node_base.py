@@ -21,8 +21,7 @@ class Node(QObject):
             return
 
         self.data_request_signal.disconnect(self.input_node.request_data)
-        self.input_node.send_data_signal.disconnect(self.send_data)
-
+        # self.input_node.send_data_signal.disconnect(self.send_data)
         self.input_node = None
 
     def connect_node(self, other: "Node"):

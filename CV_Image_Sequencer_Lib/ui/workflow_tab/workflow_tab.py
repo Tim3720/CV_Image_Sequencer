@@ -100,8 +100,11 @@ class WorkflowTabWidget(QWidget):
                 if len(frame.shape) == 2 or frame.shape[2] == 1:
                     frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
 
-        frame = np.concatenate(frames, axis=0)
-        self.update_frame(frame)
+        if frames:
+            frame = np.concatenate(frames, axis=0)
+            self.update_frame(frame)
+        else:
+            self.update_frame(None)
 
     def update_frame(self, frame: np.ndarray | None):
         if frame is None:

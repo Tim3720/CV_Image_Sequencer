@@ -55,6 +55,7 @@ class Connection(QObject, QGraphicsPathItem):
 
     def mousePressEvent(self, event) -> None:
         if event.button() == Qt.MouseButton.RightButton and self.end_port is not None:
+            print("delete")
             self.delete_connection_sigal.emit(self)
         else:
             return super().mousePressEvent(event)

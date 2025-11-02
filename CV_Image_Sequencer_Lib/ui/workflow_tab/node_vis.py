@@ -28,7 +28,8 @@ def create_proxy_no_position(parent: QGraphicsItem, widget: QWidget):
 
 class IOPort(QObject, QGraphicsEllipseItem):
 
-    port_press_signal = Signal(object) # tuple(parent_uuid, port_idx)
+    port_press_signal = Signal(object) # tuple(parent_uuid, port_idx, is_input)
+    data_changed_signal = Signal()
 
     def __init__(self, node: DataNode, is_input: bool, x, y, parent: "NodeVis",
                  parent_node_uuid: UUID, index: int) -> None:
@@ -57,6 +58,7 @@ class IOPort(QObject, QGraphicsEllipseItem):
         if issubclass(self.data_type, DictType): # enum like
             if self.is_input:
                 self.data_widget = EnumVisInput(self.node)
+                self.data_widget.data_changed_signal.connect(self.data_changed_signal.emit)
             else:
                 self.data_widget = EnumVisOutput(self.node)
             proxy = create_proxy_no_position(self, self.data_widget)
@@ -93,7 +95,8 @@ class IOPort(QObject, QGraphicsEllipseItem):
 
 
     def mousePressEvent(self, event) -> None:
-        self.port_press_signal.emit((self.parent_node_vis.node_uuid, self.index))
+        self.port_press_signal.emit((self.parent_node_vis.node_uuid, self.index,
+                                     self.is_input))
         return super().mousePressEvent(event)
 
 
@@ -102,6 +105,7 @@ class NodeVis(QObject, QGraphicsRectItem):
     node_position_changed_signal = Signal()
     double_clicked_signal = Signal(UUID)
     delete_signal = Signal(object)
+    data_changed_signal = Signal()
 
     def __init__(self, node: ComputationalNode, node_uuid: UUID, width=120, height=60):
         QObject.__init__(self)
@@ -109,8 +113,8 @@ class NodeVis(QObject, QGraphicsRectItem):
 
         self.node: ComputationalNode = node
         self.node_uuid = node_uuid
-        self.input_ports: list[IOPort] = []
-        self.output_ports: list[IOPort] = []
+        self.input_nodes: list[IOPort] = []
+        self.output_nodes: list[IOPort] = []
 
         self.init_ui()
 
@@ -167,14 +171,15 @@ class NodeVis(QObject, QGraphicsRectItem):
         for idx, node in enumerate(self.node.output_nodes):
             output_port = IOPort(node, False, self.rect().width(), y, self, self.node_uuid, idx)
 
-            self.output_ports.append(output_port)
+            self.output_nodes.append(output_port)
             y += output_port.rect().height() + 12
             if output_port.width > max_width:
                 max_width = output_port.width
 
         for idx, node in enumerate(self.node.input_nodes):
             input_port = IOPort(node, True, 0, y, self, self.node_uuid, idx)
-            self.input_ports.append(input_port)
+            input_port.data_changed_signal.connect(self.data_changed_signal.emit)
+            self.input_nodes.append(input_port)
             y += input_port.rect().height() + 12
             if input_port.width > max_width:
                 max_width = input_port.width
@@ -189,7 +194,7 @@ class NodeVis(QObject, QGraphicsRectItem):
         name_rect.setBrush(QBrush(QColor(STYLE["top_bar"])))
         name_rect.setPen(QPen(self.border_default, 0))
 
-        for node in self.output_ports:
+        for node in self.output_nodes:
             node.setPos(self.rect().width(), node.pos().y())
 
     def show_help(self):

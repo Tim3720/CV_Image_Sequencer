@@ -32,6 +32,8 @@ class WorkflowManager(QWidget):
         self.source_manager = source_manager
         self.graph_manager = GraphManager()
 
+        self.source_manager.frame_ready.connect(self.recompute)
+
         self.node_visulisations: dict[UUID, NodeVis] = {}
 
         # self.selected_node: UUID | None = None
@@ -56,20 +58,27 @@ class WorkflowManager(QWidget):
         node = ThresholdNode()
         m = self.add_node(node, 600, 250)
 
-        self.connect_nodes(g1, 0, s1, 0)
-        self.connect_nodes(g2, 0, s2, 0)
+        # self.connect_nodes(g1, 0, s1, 0)
+        # self.connect_nodes(g2, 0, s2, 0)
         # self.connect_nodes(m, 1, g2, 0)
-
-        self.connect_nodes(m, 0, g1, 0)
+        # self.connect_nodes(m, 0, g1, 0)
 
 
     def add_node(self, node: ComputationalNode, x=0, y=0):
         node_uuid = self.graph_manager.add_node(node)
         node_vis = NodeVis(node, node_uuid)
+        node_vis.data_changed_signal.connect(self.recompute)
         node_vis.double_clicked_signal.connect(self.on_node_double_click)
         self.node_visulisations[node_uuid] = node_vis
         self.node_added_signal.emit((node_uuid, x, y))
         return node_uuid
+
+    def recompute(self):
+        print("recompute")
+        if self.selected_node is None:
+            return
+        self.selected_node.send_data_signal.connect(self.show_data)
+        self.selected_node.request_data()
 
     @Slot(UUID)
     def on_node_double_click(self, node_uuid: UUID):
@@ -77,6 +86,7 @@ class WorkflowManager(QWidget):
             self.selected_node.send_data_signal.disconnect(self.show_data)
 
         self.selected_node = self.graph_manager.get_node(node_uuid)
+        self.data_signal.emit(([None], None))
         self.selected_node.send_data_signal.connect(self.show_data)
         self.selected_node.request_data()
         # self.node_double_clicked_signal.emit(node.n_outputs)

@@ -1,305 +1,376 @@
-from typing import Callable, Optional, override
-from uuid import uuid4, UUID
-from PySide6.QtCore import QObject, Signal, Slot
+from ast import Tuple
+from typing import Any, Optional, Type
+from PySide6.QtCore import QObject, Signal
+from dataclasses import dataclass
+import numpy as np
+from uuid import UUID, uuid4
+import cv2 as cv
+
+
+@dataclass
+class GrayScaleImage:
+    value: Optional[np.ndarray]
+
+@dataclass
+class ColorImage:
+    value: Optional[np.ndarray]
+
+@dataclass
+class Option:
+    value: dict[str, Any]
+
+class Socket(QObject):
+
+    data_changed = Signal()
+
+    def __init__(self, node: "Node", name: str, dtype: Type[Any]):
+        super().__init__()
+        self.uuid: UUID = uuid4()
+        self.node: Node = node
+        self.name: str = name
+        self.dtype: Type = dtype
+
+    def __repr__(self):
+        return f"<{self.__class__.__name__} {self.node.name}.{self.name}:{self.dtype.__name__}>"
+
+
+class InputSocket(Socket):
+
+    def __init__(self, node: "Node", name: str, dtype: Type[Any]):
+        super().__init__(node, name, dtype)
+
+        self.connected_output: Optional[OutputSocket] = None
+        self._manual_value: Any = None
+
+    def connect_output(self, output: "OutputSocket"):
+        if not issubclass(output.dtype, self.dtype) and not issubclass(self.dtype, output.dtype):
+            raise TypeError(f"Incompatible connection: {output.dtype.__name__} -> {self.dtype.__name__}")
+        if self.connected_output:
+            self.disconnect_output()
+        self.connected_output = output
+        output.connected_inputs.append(self)
+        output.data_changed.connect(self.data_changed)
+        self.data_changed.connect(self.node.on_input_data_changed)
+
+    def disconnect_output(self):
+        if self.connected_output:
+            try:
+                self.connected_output.connected_inputs.remove(self)
+            except ValueError:
+                print("Could not remove input from output's list of connected inputs")
+            self.connected_output = None
+            self.data_changed.emit()
+
+    def set_manual_value(self, value: Any):
+        if not isinstance(value, self.dtype):
+            raise TypeError(f"Expected {self.dtype.__name__}, got {type(value).__name__}")
+        self._manual_value = value
+        self.data_changed.emit()
+
+    def get_value(self) -> Any:
+        """Return connected output value or local manual value."""
+        if self.connected_output:
+            return self.connected_output.get_value()
+        return self._manual_value
+
+    def get_value_buffered(self) -> Any:
+        if self.connected_output:
+            return self.connected_output.get_value_buffered(self.uuid)
+        return self._manual_value
+
+
+
+class OutputSocket(Socket):
+
+    def __init__(self, node: "Node", name: str, dtype: Type[Any]):
+        super().__init__(node, name, dtype)
+        self.connected_inputs: list[InputSocket] = []
+
+    def get_value(self) -> Any:
+        return self.node.compute_output({self.uuid})
+
+    def get_value_buffered(self, uuid: UUID) -> Any:
+        return self.node.add_output_request((self.uuid, uuid))
+
+    def notify_data_changed(self):
+        self.data_changed.emit()
 
 
 
 class Node(QObject):
 
-    data_request_signal = Signal(object) # send sender for safety
-    send_data_signal = Signal(object)
+    data_changed = Signal()
 
-    def __init__(self, name: str = "") -> None:
+    def __init__(self, name: str):
         super().__init__()
-        self.input_node: Optional[Node] = None
-        self.output_nodes: list[Node] = [self]
-        self.name = name
+        self.uuid: UUID = uuid4()
+        self.name: str = name
 
-    def disconnect_node(self):
-        if self.input_node is None:
-            return
+        self.inputs: dict[UUID, InputSocket] = {}
+        self.input_uuids: list[UUID] = []
+        self.outputs: dict[UUID, OutputSocket] = {}
+        self.output_uuids: list[UUID] = []
 
-        self.data_request_signal.disconnect(self.input_node.request_data)
-        self.input_node.send_data_signal.disconnect(self.send_data)
+        self.request_buffer: dict[UUID, set[UUID]] = {}
 
-        self.input_node = None
+    def add_input(self, name: str, dtype: Type[Any]) -> InputSocket:
+        socket = InputSocket(self, name, dtype)
+        self.inputs[socket.uuid] = socket
+        self.input_uuids.append(socket.uuid)
+        return socket
 
-    def connect_node(self, other: "Node"):
-        if not self.input_node is None:
-            self.disconnect_node()
+    def add_output(self, name: str, dtype: Type[Any]) -> OutputSocket:
+        socket = OutputSocket(self, name, dtype)
+        self.outputs[socket.uuid] = socket
+        self.output_uuids.append(socket.uuid)
+        return socket
 
-        self.input_node = other
-        self.data_request_signal.connect(self.input_node.request_data)
+    def on_input_data_changed(self):
+        self.data_changed.emit()
+        for out in self.outputs.values():
+            out.notify_data_changed()
 
-    @Slot()
-    def request_data(self):
-        print(f"{self.name} requesting data")
-        if self.input_node is None:
-            return
-        self.input_node.send_data_signal.connect(self.send_data)
-        self.data_request_signal.emit(self)
+    def add_output_request(self, connected_uuids: tuple[UUID, UUID]):
+        output_uuid, input_uuid = connected_uuids
+        # self.request_buffer[output_uuid] = input_uuid
+        self.request_buffer.setdefault(output_uuid, set()).add(input_uuid)
 
-    @Slot()
-    def send_data(self, data: object, disconnect: bool = True):
-        print(f"{self.name} sending data")
-        if self.input_node is None:
-            return
-        if disconnect:
-            self.input_node.send_data_signal.disconnect(self.send_data)
-        self.send_data_signal.emit(data)
+    def compute(self, inputs: dict[UUID, Any]) -> dict[UUID, Any]:
+        """Override this to perform computation."""
+        raise NotImplementedError
+
+    def compute_output(self, requested_outputs: Optional[set[UUID]] = None) -> Any:
+        nodes: set[Node] = set()
+        inputs: dict[UUID, Any] = {}
+        for uuid, socket in self.inputs.items():
+            if socket.connected_output:
+                nodes.add(socket.connected_output.node)
+                socket.get_value_buffered()
+            else:
+                inputs[uuid] = socket.get_value()
+
+        for node in nodes:
+            res_in = node.compute_output()
+            inputs.update(res_in)
+
+        outputs = self.compute(inputs)
+
+        if requested_outputs:
+            return {uuid: outputs[uuid] for uuid in requested_outputs}
+
+        res_out = {}
+        # for uuid in self.request_buffer:
+        #     res_out[self.request_buffer[uuid]] = outputs[uuid]
+        for output_uuid, input_uuids in self.request_buffer.items():
+            for input_uuid in input_uuids:
+                res_out[input_uuid] = outputs[output_uuid]
+        self.request_buffer = {}
+        return res_out
+
+    # def compute_output(self, uuid: UUID) -> Any:
+    #     """Recursively compute only requested output."""
+    #     print("Compute output", self)
+    #     # Gather inputs lazily
+    #     inputs = {n: s.get_value() for n, s in self.inputs.items()}
+    #     outputs = self.compute(inputs)
+    #     return outputs[uuid]
 
 
 
-class ComputationalNode(Node):
-    # inputs send data to the computation, which then sends the result to the outputs
-    # outputs receive data requestes and distributed them to the inputs
-    # store which outputs want to have data and only send the data to these outputs.
-    # There are two ways to communicate with this node: 
-    #   1. Via its input and output nodes (for sending data through the graph)
-    #   2. Directly via its base node itself (for getting data from this node without
-    #   sending the data to its outputs)
+class Graph(QObject):
+    """Manages nodes and connections."""
+    def __init__(self):
+        super().__init__()
+        self.nodes: list[Node] = []
 
-    def __init__(self, input_nodes: list[Node], output_nodes: list[Node],
-                 compute_function: Callable, name: str = "") -> None:
-        super().__init__(name)
+    def add_node(self, node: Node):
+        self.nodes.append(node)
 
-        self.input_nodes: list[Node] = input_nodes
-        self.output_nodes: list[Node] = output_nodes
-        self.compute_function: Callable = compute_function
+    def connect_sockets(self, out_socket: OutputSocket, in_socket: InputSocket):
+        in_socket.connect_output(out_socket)
 
-        self.requesting_node_indices: list[int] = []
-
-        self.input_data_buffer: list[Optional[object]] = [None] * len(self.input_nodes)
-
-        for node in self.input_nodes:
-            self.connect_node(node)
-
-        for output_node in self.output_nodes:
-            output_node.connect_node(self)
-
-    def compute_data(self):
-        # check if buffer is filled:
-        if None in self.input_data_buffer:
-            return
+    def connect_sockets_by_idx(self, node_out: Node, idx_out: int, node_in: Node, idx_in: int):
         try:
-            print("computing result")
-            result = self.compute_function(*self.input_data_buffer)
+            out_socket = node_out.outputs[node_out.output_uuids[idx_out]]
+            in_socket = node_in.inputs[node_in.input_uuids[idx_in]]
+            self.connect_sockets(out_socket, in_socket)
+        except KeyError or IndexError:
+            ...
 
-            self.send_data_signal.emit([result[idx] for idx in
-                                        self.requesting_node_indices])
-            for i in self.requesting_node_indices:
-                self.output_nodes[i].send_data(result[i], False)
-            self.input_data_buffer = [None] * len(self.input_nodes)
-            self.requesting_node_indices = []
-        except Exception as e:
-            print(f"Error on running compute_function in ComputeNode {self}: {e}")
-
-    @override
-    @Slot(object)
-    def request_data(self, sender: Optional[Node] = None):
-        print(f"{self.name} requesting data")
-        if sender is None:  # request for all outputs
-            self.requesting_node_indices = [i for i in range(len(self.output_nodes))]
-            # for node in self.output_nodes:
-            #     self.send_data_signal.connect(node.send_data)
-        else:
-            if not isinstance(sender, Node) or not sender in self.output_nodes:
-                raise ValueError(f"Invalid sender tried requesting data: {sender}")
-            self.requesting_node_indices.append(self.output_nodes.index(sender))
-            self.send_data_signal.disconnect(sender.send_data)
-        self.data_request_signal.emit(self)
-
-    @override
-    @Slot(object)
-    def send_data(self, data: object):
-        print(f"{self.name} sending data")
-        sender = self.sender()
-        if not isinstance(sender, Node) or not sender in self.input_nodes:
-            raise ValueError(f"Invalid sender tried to add data to the input buffer: {sender}")
-
-        idx = self.input_nodes.index(sender)
-        self.input_data_buffer[idx] = data
-        self.compute_data()
-
-    @override
-    def connect_node(self, other: "Node"):
-        self.data_request_signal.connect(other.request_data)
-        other.send_data_signal.connect(self.send_data)
-
-
-class SourceNode(ComputationalNode):
-    def __init__(self, input_nodes: list[Node], output_nodes: list[Node], source_function, name: str = "") -> None:
-        super().__init__(input_nodes, output_nodes, source_function, name)
-
-        if not self.input_nodes:
-            self.data_request_signal.connect(self.send_data)
-
-    @override
-    @Slot(object)
-    def send_data(self, data: object = None):
-        print(f"{self.name} sending data")
-
-        if self.input_nodes:
-            sender = self.sender()
-            if not isinstance(sender, Node) or not sender in self.input_nodes:
-                raise ValueError(f"Invalid sender tried to add data to the input buffer: {sender}")
-
-            idx = self.input_nodes.index(sender)
-            self.input_data_buffer[idx] = data
-        self.compute_data()
-
+    def evaluate(self, node: Node, output_uuid: UUID) -> Any:
+        return node.outputs[output_uuid].get_value()
 
 class BlackBoxNode(Node):
-    def __init__(self, input_nodes: list[Node], output_nodes: list[Node], name: str = "") -> None:
+
+    def __init__(self, name: str):
         super().__init__(name)
+        self.sub_graph = Graph()
+        self.input_map: dict[UUID, InputSocket] = {}
+        self.output_map: dict[UUID, OutputSocket] = {}
 
-        self.input_nodes: list[Node] = input_nodes
-        self.output_nodes: list[Node] = output_nodes
+    def expose_input(self, inner_input: InputSocket, name: Optional[str] = None):
+        external_name: str = name or inner_input.name
+        external_socket = self.add_input(external_name, inner_input.dtype)
+        self.input_map[external_socket.uuid] = inner_input
 
-        self.requesting_node_idx: Optional[int] = None
-        self.input_data_buffer: list[Optional[object]] = [None] * len(self.input_nodes)
+        # Connect external -> internal manually (value forwarding)
+        def forward_value_changed():
+            value = external_socket.get_value()
+            inner_input.set_manual_value(value)
+        external_socket.data_changed.connect(forward_value_changed)
+
+    def expose_output(self, inner_output: OutputSocket, name: Optional[str] = None):
+        external_name: str = name or inner_output.name
+        external_socket = OutputSocket(self, external_name, inner_output.dtype)
+        self.output_map[external_socket.uuid] = inner_output
+
+        inner_output.data_changed.connect(external_socket.data_changed)
+
+    def compute(self, inputs: dict[UUID, Any]) -> dict[UUID, Any]:
+        """When an external output is requested, pull it from the inner graph."""
+        results = {}
+        for uuid, inner_output in self.output_map.items():
+            results[uuid] = inner_output.get_value()
+        return results
 
 
-class Graph:
+##################################
+## Example:
+##################################
+class ImageInputNode(Node):
+    """Provides a fixed grayscale image."""
+    def __init__(self, name: str, image: GrayScaleImage):
+        super().__init__(name)
+        self.image = image
+        self.add_output("image", GrayScaleImage)
 
-    def __init__(self) -> None:
-        self._uuid_to_nodes: dict[UUID, Node] = {}
+    def compute(self, inputs: dict[UUID, Any]) -> dict[UUID, Any]:
+        return {self.output_uuids[0]: self.image}
 
-        # Connection layout: {NodeUUID: [(OutputNodeUUID, OutPutNodeIndex)]}
-        self._node_connections: dict[UUID, list[Optional[tuple[UUID, int]]]] = {}
 
-    def get_node(self, node_uuid: UUID) -> Node:
-        if not node_uuid in self._uuid_to_nodes:
-            raise ValueError(f"Input node not in graph: {node_uuid}")
-        return self._uuid_to_nodes[node_uuid]
 
-    def has_connection(self, input_node_uuid: UUID, input_node_idx: int) -> bool:
-        if not input_node_uuid in self._uuid_to_nodes:
-            raise ValueError(f"Input node not in graph: {input_node_uuid}.")
-        if not input_node_uuid in self._node_connections:
-            return False
-        if input_node_idx < 0 or input_node_idx <= len(self._node_connections[input_node_uuid]):
-            raise ValueError(f"Invalid index")
-        if self._node_connections[input_node_uuid][input_node_idx] is None:
-            return False
-        return True
+class InvertImageNode(Node):
+    """Inverts grayscale image data."""
+    def __init__(self, name: str):
+        super().__init__(name)
+        self.add_input("image", GrayScaleImage)
+        self.add_output("inverted", GrayScaleImage)
 
-    def get_connection(self, input_node_uuid: UUID, input_node_idx: int) -> tuple[UUID, int]:
-        if not input_node_uuid in self._uuid_to_nodes:
-            raise ValueError(f"Input node not in graph: {input_node_uuid}.")
-        if not input_node_uuid in self._node_connections:
-            raise ValueError(f"No connection to the given node.")
-        if input_node_idx < 0 or input_node_idx <= len(self._node_connections[input_node_uuid]):
-            raise ValueError(f"Invalid index")
-        connection = self._node_connections[input_node_uuid][input_node_idx]
-        if connection is None:
-            raise ValueError(f"No connection to the given node.")
-        return connection
+    def compute(self, inputs: dict[UUID, Any]) -> dict[UUID, Any]:
+        img: GrayScaleImage = inputs[self.input_uuids[0]]
+        if img.value is None:
+            return {self.output_uuids[0]: None}
+        # Example computation
+        inverted = GrayScaleImage(value=img.value - 255)
+        return {self.output_uuids[0]: inverted}
 
-    def add_node(self, node: Node) -> UUID:
-        uuid = uuid4()
-        self._uuid_to_nodes[uuid] = node
-        return uuid
 
-    def remove_node(self, node_uuid: UUID):
-        ...
+class BrightnessNode(Node):
+    """Adds brightness to an image based on manual or connected value."""
+    def __init__(self, name: str):
+        super().__init__(name)
+        self.add_input("image", GrayScaleImage)
+        self.add_input("brightness", float)
+        self.add_output("result", GrayScaleImage)
 
-    def connect_nodes(self, input_node_uuid: UUID, input_node_idx: int,
-                      output_node_uuid: UUID, output_node_idx: int):
-        """Connect two nodes. If the nodes are computational nodes, the specific Nodes
-        which should be connected are defined by the index. Other nodes should not have
-        any sub-nodes and thus the index must be 0."""
-        if input_node_uuid == output_node_uuid:
-            raise ValueError(f"Can not connect a node to itself.")
-        if not input_node_uuid in self._uuid_to_nodes:
-            raise ValueError(f"Input node not in graph: {input_node_uuid}")
-        if not output_node_uuid in self._uuid_to_nodes:
-            raise ValueError(f"Output node not in graph: {input_node_uuid}")
-        if output_node_idx < 0 or input_node_idx < 0:
-            raise ValueError("Input or output index smaller 0")
+    def compute(self, inputs: dict[UUID, Any]) -> dict[UUID, Any]:
+        img: GrayScaleImage = inputs[self.input_uuids[0]]
+        brightness: float = 0.0
+        if self.input_uuids[1] in inputs:
+            brightness = inputs[self.input_uuids[1]] 
+        if img.value is None:
+            return {self.output_uuids[0]: None}
+        res = img.value.astype(np.int32) + brightness
+        res[res < 0] = 0
+        res[res > 255] = 255
+        result = GrayScaleImage(res.astype(np.uint8))
+        return {self.output_uuids[0]: result}
 
-        input_node = self._uuid_to_nodes[input_node_uuid]
-        if not input_node_uuid in self._node_connections or not self._node_connections[input_node_uuid]:
-            if isinstance(input_node, ComputationalNode):
-                self._node_connections[input_node_uuid] = [None] * len(input_node.input_nodes)
-            else:
-                self._node_connections[input_node_uuid] = [None]
+class ABSDiffNode(Node):
+    """Adds brightness to an image based on manual or connected value."""
+    def __init__(self, name: str):
+        super().__init__(name)
+        self.add_input("image 1", GrayScaleImage)
+        self.add_input("image 2", GrayScaleImage)
+        self.add_output("result", GrayScaleImage)
 
-        if len(self._node_connections[input_node_uuid]) <= input_node_idx:
-            raise ValueError("Input index out of bounds")
+    def compute(self, inputs: dict[UUID, Any]) -> dict[UUID, Any]:
+        img1: GrayScaleImage = inputs[self.input_uuids[0]]
+        img2: GrayScaleImage = inputs[self.input_uuids[1]]
+        if img1.value is None or img2.value is None:
+            return {self.output_uuids[0]: None}
 
-        output_node = self._uuid_to_nodes[output_node_uuid]
-        if (isinstance(output_node, ComputationalNode) and output_node_idx >= len(output_node.output_nodes)) or output_node_idx > 0:
-            raise ValueError("Input index out of bounds")
+        res = cv.absdiff(img1.value, img2.value)
+        result = GrayScaleImage(res)
+        return {self.output_uuids[0]: result}
 
-        # check if connection already exists?
-        if isinstance(input_node, ComputationalNode):
-            input_node.input_nodes[input_node_idx].connect_node(output_node.output_nodes[output_node_idx])
-        else:
-            input_node.connect_node(output_node.output_nodes[output_node_idx])
 
-        #     input_node.output_nodes[0].connect_node(output_node)
-        self._node_connections[input_node_uuid][input_node_idx] = (output_node_uuid, output_node_idx)
+class AddDiffNode(Node):
+    """Adds brightness to an image based on manual or connected value."""
+    def __init__(self, name: str):
+        super().__init__(name)
+        self.add_input("image 1", GrayScaleImage)
+        self.add_input("image 2", GrayScaleImage)
+        self.add_output("result 1", GrayScaleImage)
+        self.add_output("result 2", GrayScaleImage)
 
-    def disconnect_node(self, input_node_uuid: UUID, input_node_idx: int):
-        if not input_node_uuid in self._uuid_to_nodes:
-            raise ValueError(f"Input node not in graph: {input_node_uuid}.")
-        if not input_node_uuid in self._node_connections:
-            raise ValueError(f"No connection to the given node.")
-        if input_node_idx < 0 or input_node_idx <= len(self._node_connections[input_node_uuid]):
-            raise ValueError(f"No connection to the given node.")
+    def compute(self, inputs: dict[UUID, Any]) -> dict[UUID, Any]:
+        img1: GrayScaleImage = inputs[self.input_uuids[0]]
+        img2: GrayScaleImage = inputs[self.input_uuids[1]]
+        if img1.value is None or img2.value is None:
+            return {self.output_uuids[0]: None}
 
-        self._node_connections[input_node_uuid][input_node_idx] = None
+        res1 = cv.add(img1.value, img2.value)
+        res2 = cv.subtract(img1.value, img2.value)
+        result1 = GrayScaleImage(res1)
+        result2 = GrayScaleImage(res2)
+        return {self.output_uuids[0]: result1, self.output_uuids[1]: result2}
 
 
 if __name__ == "__main__":
-    def source_func():
-        return [1]
-
-    def source_func2():
-        return [2]
-
-    def comp1(arg):
-        return [arg + 1]
-
-    def comp2(arg):
-        return [arg - 1]
-
-    def comp3(arg1, arg2):
-        return [arg1 + arg2, arg1 - arg2]
-
-    # a = SourceNode(source_func, "a")
-    # b = SourceNode(source_func2, "b")
-    a_node = Node("a_node")
-    b_node = Node("b_node")
-    a = SourceNode([], [a_node], source_func, "a")
-    b = SourceNode([], [b_node], source_func2, "b")
-
-    c0 = Node("c0")
-    c1 = Node("c1")
-    c2 = Node("c2")
-    c3 = Node("c3")
-    C = ComputationalNode([c0, c1], [c2, c3], comp3, "C")
+    from PySide6.QtCore import QCoreApplication
+    app = QCoreApplication([])
 
     graph = Graph()
+    img = cv.imread("/home/tim/Documents/Arbeit/HDF5Test/SO298_298-10-1_PISCO2_20230422-2334_Results/Images/SO298_298-10-1_PISCO2_0010.21dbar-00.00S-100.95W-22.96C_20230422-23334875.png",
+              cv.IMREAD_GRAYSCALE)
+    img_node = ImageInputNode("Input", GrayScaleImage(img))
+    # invert_node = InvertImageNode("Invert")
+    # bright_node = BrightnessNode("Brighten")
+    img_node2 = ImageInputNode("Input 2", GrayScaleImage(img))
+    absdiff_node = ABSDiffNode("ABSDiff")
+    adddiff_node = AddDiffNode("AddDiff")
 
-    a_id = graph.add_node(a)
-    b_id = graph.add_node(b)
-    C_id = graph.add_node(C)
-    print(a_id)
-    print(b_id)
-    print(C_id)
+    graph.add_node(img_node)
+    graph.add_node(img_node2)
+    graph.add_node(absdiff_node)
+    graph.add_node(adddiff_node)
+    # graph.add_node(bright_node)
 
-    graph.connect_nodes(C_id, 0, a_id, 0)
-    graph.connect_nodes(C_id, 1, b_id, 0)
+    output_socket_uuid = list(img_node.outputs.keys())[0]
 
-    # c2.request_data()
-    # c2.send_data_signal.connect(lambda x: print(x))
-    # c3.send_data_signal.connect(lambda x: print(x))
-    # C.request_data()
-    # C.request_data()
+    graph.connect_sockets_by_idx(img_node, 0, adddiff_node, 0)
+    graph.connect_sockets_by_idx(img_node2, 0, adddiff_node, 1)
+    graph.connect_sockets_by_idx(adddiff_node, 0, absdiff_node, 0)
+    graph.connect_sockets_by_idx(adddiff_node, 1, absdiff_node, 1)
 
-    a.send_data_signal.connect(lambda x: print(x))
-    a.request_data()
-    a.request_data()
+    # graph.connect_sockets_by_idx(img_node, 0, invert_node, 0)
+    # graph.connect_sockets_by_idx(invert_node, 0, bright_node, 0)
 
+    # Set a manual input value (brightness)
+    # bright_node.inputs[bright_node.input_uuids[1]].set_manual_value(20.0)
+    # bright_node.data_changed.connect(lambda: print("Bright node output changed"))
+
+    # Evaluate lazily
+    result = graph.evaluate(absdiff_node, absdiff_node.output_uuids[0])
+    cv.imshow("result", result.value)
+    cv.waitKey()
+
+    # Trigger automatic signal propagation by changing input
+    # img_node.image = GrayScaleImage(img + 100)
+    # img_node.data_changed.emit()  # manually notify (GUI would do this)
+
+    # Re-evaluate
+    # result = graph.evaluate(bright_node, bright_node.output_uuids[0])
+    # cv.imshow("result", result.value)
+    # cv.waitKey()

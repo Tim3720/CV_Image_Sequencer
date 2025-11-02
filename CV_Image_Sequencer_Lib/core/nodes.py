@@ -5,7 +5,7 @@ import numpy as np
 from CV_Image_Sequencer_Lib.core.graph_manager import GraphManager
 
 from ..utils.source_manager import SourceManager
-from ..utils.types import Image1C, Image3C, ThresholdTypes
+from ..utils.types import Image1C, Image3C, Int, ThresholdTypes
 from .node_base import DataNode, SourceNode, ComputationalNode, BlackBoxNode
 import cv2 as cv
 
@@ -77,25 +77,33 @@ class ABSDiffNode(ComputationalNode):
 
 class ThresholdNode(SourceNode):
     def __init__(self):
-        input_node1 = DataNode(Image1C, name="Image 1")
-        self.source_node_input = DataNode(ThresholdTypes, name="Threshold type")
+        image_input = DataNode(Image1C, name="Image 1")
+        self.threshold_val_input = DataNode(Int, name="Threshold value")
+        self.threshold_new_val_input = DataNode(Int, name="New value")
+        self.threshold_type_input = DataNode(ThresholdTypes, name="Threshold type")
+
         output_node = DataNode(Image1C, name="Threshold Image")
 
-        super().__init__([input_node1, self.source_node_input], [output_node], self.function, name=self.__class__.__name__)
+        super().__init__([image_input, self.threshold_val_input, self.threshold_new_val_input, self.threshold_type_input], [output_node], self.function, name=self.__class__.__name__)
 
         # self.source_node_input.data_request_signal.connect(self.on_unconnected_request)
 
     def on_unconnected_request(self):
-        if self.source_node_input.input_node is None:
+        if self.threshold_type_input.input_node is None:
             t = ThresholdTypes()
-            print("here")
-            self.source_node_input.send_data((t.get_default_value(), None), False)
+            self.threshold_type_input.send_data((t.get_default_value(), None), False)
+        if self.threshold_val_input.input_node is None:
+            t = Int(value=50)
+            self.threshold_val_input.send_data((t, None), False)
+        if self.threshold_new_val_input.input_node is None:
+            t = Int(value=255)
+            self.threshold_new_val_input.send_data((t, None), False)
 
-    def function(self, image1: Image1C, threshold_type: ThresholdTypes):
+    def function(self, image1: Image1C, threshold_val: Int, threshold_new_val: Int, threshold_type: ThresholdTypes):
         print("Threshold type:", threshold_type.get_value)
         if image1.value is None:
             return [Image1C(value=None)]
 
-        res = cv.threshold(image1.value, 100, 255, threshold_type.get_value())[1]
+        res = cv.threshold(image1.value, threshold_val.get_value(), threshold_new_val.get_value(), threshold_type.get_value())[1]
         return [Image1C(value=res)]
 

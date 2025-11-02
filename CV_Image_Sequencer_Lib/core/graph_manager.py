@@ -47,6 +47,38 @@ class GraphManager:
     def remove_node(self, node_uuid: UUID):
         ...
 
+    def connection_possible(self, input_node_uuid: UUID, input_node_idx: int,
+                      output_node_uuid: UUID, output_node_idx: int) -> bool:
+        if input_node_uuid == output_node_uuid:
+            return False
+        if not input_node_uuid in self._uuid_to_nodes:
+            raise ValueError(f"Input node not in graph: {input_node_uuid}")
+        if not output_node_uuid in self._uuid_to_nodes:
+            raise ValueError(f"Output node not in graph: {input_node_uuid}")
+        if output_node_idx < 0 or input_node_idx < 0:
+            raise ValueError("Input or output index smaller 0")
+
+
+        if self.has_connection(input_node_uuid, input_node_idx):
+            return False
+
+        input_node = self._uuid_to_nodes[input_node_uuid]
+        output_node = self._uuid_to_nodes[output_node_uuid]
+        if not isinstance(input_node, ComputationalNode) or not isinstance(output_node,
+                                                                           ComputationalNode):
+            raise ValueError("Can not connect nodes which are not of type ComputationalNode")
+
+        if (isinstance(output_node, ComputationalNode) and output_node_idx >= len(output_node.output_nodes)) or output_node_idx > 0:
+            raise ValueError("Input index out of bounds")
+
+        node_in = input_node.input_nodes[input_node_idx]
+        node_out = output_node.output_nodes[output_node_idx]
+
+        if not node_in.data_type is None and not node_out.data_type is None and node_in.data_type != node_out.data_type:
+            return False
+        return True
+
+
     def connect_nodes(self, input_node_uuid: UUID, input_node_idx: int,
                       output_node_uuid: UUID, output_node_idx: int):
         """Connect two nodes. If the nodes are computational nodes, the specific Nodes
@@ -90,7 +122,12 @@ class GraphManager:
             raise ValueError(f"Input node not in graph: {input_node_uuid}.")
         if not input_node_uuid in self._node_connections:
             raise ValueError(f"No connection to the given node.")
-        if input_node_idx < 0 or input_node_idx <= len(self._node_connections[input_node_uuid]):
+        if input_node_idx < 0 or input_node_idx > len(self._node_connections[input_node_uuid]):
             raise ValueError(f"No connection to the given node.")
 
+        input_node = self._uuid_to_nodes[input_node_uuid]
+        if isinstance(input_node, ComputationalNode):
+            input_node.input_nodes[input_node_idx].disconnect_node()
+        else:
+            input_node.disconnect_node()
         self._node_connections[input_node_uuid][input_node_idx] = None

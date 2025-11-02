@@ -5,7 +5,7 @@ from CV_Image_Sequencer_Lib.utils.type_base import IOType
 from ...assets.styles.style import STYLE
 from ...core.node_base import DataNode, SourceNode
 from ...utils.types import Bool, DictType, Float, Int, Scalar
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtCore import Qt, Signal, Slot
 
 def port_label(text: str) -> QLabel:
     label = QLabel(text)
@@ -14,6 +14,8 @@ def port_label(text: str) -> QLabel:
 
 
 class EnumVisInput(QWidget):
+
+    data_changed_signal = Signal()
     
     def __init__(self, node: DataNode, parent=None):
         super().__init__(parent)
@@ -65,8 +67,9 @@ class EnumVisInput(QWidget):
 
     @Slot(str)
     def _set_value(self, value: str):
-        data_type = self.node.output_nodes[0].data_type
-        data = data_type(value=value)
+        # data_type = self.node.output_nodes[0].data_type
+        # data = data_type(value=value)
+        self.data_changed_signal.emit()
         # self.node.send_data((data, None), False)
 
     def set_value(self, value: str):
