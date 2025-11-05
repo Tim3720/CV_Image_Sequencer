@@ -1,11 +1,14 @@
 import sys
 from PySide6.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QWidget
+from PySide6.QtCore import QFileSystemWatcher, QTimer
 from CV_Image_Sequencer_Lib import CVImageSequencerWidget
 from CV_Image_Sequencer_Lib.assets.styles.style import DARK, LIGHT, STYLE
 from CV_Image_Sequencer_Lib.ui import main_window
 from pathlib import Path
 
 USE_DARK = False
+
+
 
 def main():
     """
@@ -37,6 +40,10 @@ def main():
     main_window.setCentralWidget(central_widget)
 
     main_window.show()
+
+
+    watcher = QFileSystemWatcher(["./CV_Image_Sequencer_Lib/"])
+    watcher.fileChanged.connect(lambda: print("file change"))
 
     # Start the event loop
     sys.exit(app.exec())

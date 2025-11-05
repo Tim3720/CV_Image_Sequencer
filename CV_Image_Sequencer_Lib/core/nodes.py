@@ -1,109 +1,192 @@
-import re
-from typing import Callable
-import numpy as np
+from typing import IO, Any, Optional, Type
+from PySide6.QtCore import QObject, Signal
+from uuid import UUID, uuid4
 
-from CV_Image_Sequencer_Lib.core.graph_manager import GraphManager
-
-from ..utils.source_manager import SourceManager
-from ..utils.types import Image1C, Image3C, Int, ThresholdTypes
-from .node_base import DataNode, SourceNode, ComputationalNode, BlackBoxNode
-import cv2 as cv
-
-class ImageSourceNode(SourceNode):
-
-    def __init__(self, image_source_function: Callable):
-        output_node = DataNode(Image3C, "Image Out")
-        self.image_source_function = image_source_function
-        super().__init__([], [output_node], self.image_source_function, name="SourceNode")
-
-    def get_data(self):
-        data = self.image_source_function()
-        return [data]
-
-class GrayScaleNode(ComputationalNode):
-    def __init__(self):
-        input_node = DataNode(Image3C, name="Image In")
-        output_node = DataNode(Image1C, name="Grayscale Image")
-        super().__init__([input_node], [output_node], self.convert_to_gray, name="GrayScaleNode")
-
-    def convert_to_gray(self, img: Image3C):
-        if img.value is None:
-            return Image1C(value=None)
-        gray = cv.cvtColor(img.value, cv.COLOR_BGR2GRAY)
-        return [Image1C(value=gray)]
-
-class MinNode(ComputationalNode):
-    def __init__(self):
-        input_nodes = [
-                DataNode(Image1C, name="Image 1"),
-                DataNode(Image1C, name="Image 2"),
-                ]
-        output_node = DataNode(Image1C, name="Grayscale Image")
-
-        super().__init__(input_nodes, [output_node], self.function, name=self.__class__.__name__)
-
-    def function(self, image1: Image1C, image2: Image1C):
-        if image1.value is None and image2.value is None:
-            return Image1C(value=None)
-        elif image1.value is None:
-            return image2
-        elif image2.value is None:
-            return image1
-
-        res = np.min([image1.value, image2.value], axis=0)
-        return [Image1C(value=res)]
+from .types import IOType
 
 
-class ABSDiffNode(ComputationalNode):
-    def __init__(self):
-        input_nodes = [
-                DataNode(Image1C, name="Image 1"),
-                DataNode(Image1C, name="Image 2"),
-                ]
-        output_node = DataNode(Image1C, name="Diff Image")
+class Socket(QObject):
 
-        super().__init__(input_nodes, [output_node], self.function, name=self.__class__.__name__)
+    data_changed = Signal()
+    data_received = Signal(object)
 
-    def function(self, image1: Image1C, image2: Image1C):
-        if image1.value is None and image2.value is None:
-            return Image1C(value=None)
-        elif image1.value is None:
-            return image2
-        elif image2.value is None:
-            return image1
+    def __init__(self, node: "Node", name: str, dtype: type[IOType]):
+        super().__init__()
+        self.uuid: UUID = uuid4()
+        self.node: "Node" = node
+        self.name: str = name
+        self.dtype: type[IOType] = dtype
 
-        res = cv.absdiff(image1.value, image2.value)
-        return [Image1C(value=res)]
+    def __repr__(self):
+        return f"<{self.__class__.__name__} {self.node.name}.{self.name}:{self.dtype.__name__}>"
 
-class ThresholdNode(SourceNode):
-    def __init__(self):
-        image_input = DataNode(Image1C, name="Image 1")
-        self.threshold_val_input = DataNode(Int, name="Threshold value")
-        self.threshold_new_val_input = DataNode(Int, name="New value")
-        self.threshold_type_input = DataNode(ThresholdTypes, name="Threshold type")
 
-        output_node = DataNode(Image1C, name="Threshold Image")
+class InputSocket(Socket):
 
-        super().__init__([image_input, self.threshold_val_input, self.threshold_new_val_input, self.threshold_type_input], [output_node], self.function, name=self.__class__.__name__)
+    def __init__(self, node: "Node", name: str, dtype: type[IOType], min_value:
+                 Optional[type] = None, max_value: Optional[type] = None):
+        super().__init__(node, name, dtype)
 
-        # self.source_node_input.data_request_signal.connect(self.on_unconnected_request)
+        self.connected_output: Optional[OutputSocket] = None
+        self._manual_value: Any = None
 
-    def on_unconnected_request(self):
-        if self.threshold_type_input.input_node is None:
-            t = ThresholdTypes()
-            self.threshold_type_input.send_data((t.get_default_value(), None), False)
-        if self.threshold_val_input.input_node is None:
-            t = Int(value=50)
-            self.threshold_val_input.send_data((t, None), False)
-        if self.threshold_new_val_input.input_node is None:
-            t = Int(value=255)
-            self.threshold_new_val_input.send_data((t, None), False)
+        self._min_value = min_value
+        self._max_value = max_value
 
-    def function(self, image1: Image1C, threshold_val: Int, threshold_new_val: Int, threshold_type: ThresholdTypes):
-        print("Threshold type:", threshold_type.get_value)
-        if image1.value is None:
-            return [Image1C(value=None)]
+    def connect_output(self, output: "OutputSocket"):
+        if not issubclass(output.dtype, self.dtype) and not issubclass(self.dtype, output.dtype):
+            raise TypeError(f"Incompatible connection: {output.dtype.__name__} -> {self.dtype.__name__}")
+        if self.connected_output:
+            self.disconnect_output()
+        self.connected_output = output
+        output.connected_inputs.append(self)
+        output.data_changed.connect(self.data_changed)
+        self.data_changed.connect(self.node.on_input_data_changed)
 
-        res = cv.threshold(image1.value, threshold_val.get_value(), threshold_new_val.get_value(), threshold_type.get_value())[1]
-        return [Image1C(value=res)]
+    def disconnect_output(self):
+        if self.connected_output:
+            try:
+                self.connected_output.connected_inputs.remove(self)
+            except ValueError:
+                print("Could not remove input from output's list of connected inputs")
+            self.connected_output = None
+            self.data_changed.emit()
 
+    def set_manual_value(self, value: IOType):
+        if not issubclass(type(value), self.dtype):
+            raise TypeError(f"Expected {self.dtype.__name__}, got {type(value).__name__}")
+        if not self._min_value is None and value.value < self._min_value:
+            raise ValueError(f"Value {value} is smaller then minimal allowed value {self._min_value}")
+        if not self._max_value is None and value.value > self._max_value:
+            raise ValueError(f"Value {value} is bigger then maximal allowed value {self._max_value}")
+        self._manual_value = value
+        self.data_changed.emit()
+
+    def value_ok(self, value: IOType) -> bool:
+        if not issubclass(type(value), self.dtype):
+            return False
+        if not self._min_value is None and value.value < self._min_value:
+            return False
+        if not self._max_value is None and value.value > self._max_value:
+            return False
+        return True
+
+    def get_value(self) -> Any:
+        """Return connected output value or local manual value."""
+        if self.connected_output:
+            val = self.connected_output.get_value()
+        else:
+            val = self._manual_value
+        self.data_received.emit(val)
+        return val
+        
+
+    def get_value_buffered(self) -> Any:
+        if self.connected_output:
+            val = self.connected_output.get_value_buffered(self.uuid)
+        else:
+            val = self._manual_value
+            self.data_received.emit(val)
+        return val
+
+
+
+class OutputSocket(Socket):
+
+    def __init__(self, node: "Node", name: str, dtype: Type[IOType]):
+        super().__init__(node, name, dtype)
+        self.connected_inputs: list[InputSocket] = []
+
+    def get_value(self) -> Any:
+        val = self.node.compute_output({self.uuid})
+        self.data_received.emit(val[self.uuid])
+        return val
+
+    def get_value_buffered(self, uuid: UUID) -> Any:
+        val = self.node.add_output_request((self.uuid, uuid))
+        return val
+
+    def notify_data_changed(self):
+        self.data_changed.emit()
+
+
+
+
+class Node(QObject):
+
+    data_changed = Signal()
+
+    def __init__(self, name: str, x: float = 0, y: float = 0):
+        super().__init__()
+        self.uuid: UUID = uuid4()
+        self.name: str = name
+        self.x = x
+        self.y = y
+
+        self.inputs: dict[UUID, InputSocket] = {}
+        self.input_uuids: list[UUID] = []
+        self.outputs: dict[UUID, OutputSocket] = {}
+        self.output_uuids: list[UUID] = []
+
+        self.request_buffer: dict[UUID, set[UUID]] = {}
+
+    def get_output_by_idx(self, idx) -> OutputSocket:
+        return self.outputs[self.output_uuids[idx]]
+
+    def get_input_by_idx(self, idx) -> InputSocket:
+        return self.inputs[self.input_uuids[idx]]
+
+    def add_input(self, name: str, dtype: Type[Any]) -> InputSocket:
+        socket = InputSocket(self, name, dtype)
+        self.inputs[socket.uuid] = socket
+        self.input_uuids.append(socket.uuid)
+        return socket
+
+    def add_output(self, name: str, dtype: Type[Any]) -> OutputSocket:
+        socket = OutputSocket(self, name, dtype)
+        self.outputs[socket.uuid] = socket
+        self.output_uuids.append(socket.uuid)
+        return socket
+
+    def on_input_data_changed(self):
+        self.data_changed.emit()
+        for out in self.outputs.values():
+            out.notify_data_changed()
+
+    def add_output_request(self, connected_uuids: tuple[UUID, UUID]):
+        output_uuid, input_uuid = connected_uuids
+        # self.request_buffer[output_uuid] = input_uuid
+        self.request_buffer.setdefault(output_uuid, set()).add(input_uuid)
+
+    def compute(self, inputs: dict[UUID, Any]) -> dict[UUID, Any]:
+        """Override this to perform computation."""
+        raise NotImplementedError
+
+    def compute_output(self, requested_outputs: Optional[set[UUID]] = None) -> Any:
+        nodes: set[Node] = set()
+        inputs: dict[UUID, Any] = {}
+        for uuid, socket in self.inputs.items():
+            if socket.connected_output:
+                nodes.add(socket.connected_output.node)
+                socket.get_value_buffered()
+            else:
+                inputs[uuid] = socket.get_value()
+
+        for node in nodes:
+            res_in = node.compute_output()
+            inputs.update(res_in)
+        for uuid, data in inputs.items():
+            self.inputs[uuid].data_received.emit(data)
+
+        outputs = self.compute(inputs)
+
+        if requested_outputs:
+            return {uuid: outputs[uuid] for uuid in requested_outputs}
+
+        res_out = {}
+        for output_uuid, input_uuids in self.request_buffer.items():
+            self.outputs[output_uuid].data_received.emit(outputs[output_uuid])
+            for input_uuid in input_uuids:
+                res_out[input_uuid] = outputs[output_uuid]
+        self.request_buffer = {}
+        return res_out
