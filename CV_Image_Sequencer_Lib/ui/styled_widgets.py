@@ -1,4 +1,4 @@
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtWidgets import QPushButton, QLabel, QLineEdit
 import os
 
@@ -18,9 +18,20 @@ class StyledButton(QPushButton):
         self.setObjectName("Primary")
 
 class StyledLabel(QLabel):
-    def __init__(self, text="", parent=None):
+    def __init__(self, icon_name: str, invert_icon: bool, text: str = "", parent=None):
         super().__init__(text, parent)
-        self.setStyleSheet("color: #f0f0f0;")
+
+        HERE = os.path.dirname(__file__)  # path to Lib/
+        icon = QPixmap(os.path.join(HERE, "../assets/icons/", icon_name))
+        self.setStyleSheet("background-color: transparent;")
+
+        if invert_icon: 
+            image = icon.toImage()
+            image.invertPixels()  # inverts RGB values in place
+            icon = QPixmap.fromImage(image)
+
+        self.setScaledContents(True)
+        self.setPixmap(icon)
 
 class StyledLineEdit(QLineEdit):
     def __init__(self, parent=None):

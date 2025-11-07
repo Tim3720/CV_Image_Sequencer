@@ -1,37 +1,42 @@
-from typing import Any
-from PySide6.QtCore import QObject, Qt
-from PySide6.QtWidgets import (QGraphicsEllipseItem, QWidget, QGraphicsRectItem, QHBoxLayout, QLabel,
-                               QGraphicsItem, QGraphicsProxyWidget)
-from PySide6.QtGui import QColor, QBrush, QPen
+from PySide6.QtCore import QObject, Signal
+from PySide6.QtWidgets import (QGraphicsEllipseItem, QGraphicsProxyWidget, QGraphicsSceneMouseEvent)
+from PySide6.QtGui import QColor, QBrush, QMouseEvent, QPen, Qt
+
+from CV_Image_Sequencer_Lib.core.types import IOType
 
 from .type_vis import TypeVis
-from ..styled_widgets import StyledButton
-from ...assets.styles.style import STYLE
-from ...core.nodes import InputSocket, Socket
+from ...core.nodes import Node
 
 
 class SocketVis(QObject, QGraphicsEllipseItem):
 
-    def __init__(self, socket: Socket, parent):
+    clicked = Signal()
+
+    def __init__(self, node: Node, idx: int, is_input: bool, parent):
         QObject.__init__(self)
         radius = 10
         QGraphicsEllipseItem.__init__(self, -radius/2, -radius/2, radius, radius, parent)
 
-        self.socket = socket
+        self.node = node
+        self.is_input = is_input
+        self.idx = idx
+        if self.is_input:
+            self.name, self.dtype = self.node.parameter_template[self.idx]
+        else:
+            self.name, self.dtype = self.node.result_template[self.idx]
 
-        self.color = QColor.fromRgb(*self.socket.dtype.color)
+        self.color = QColor.fromRgb(*self.dtype.color)
         self.init_ui()
 
         self.setZValue(2)
 
     def init_ui(self):
-        self.widget = TypeVis(self.socket)
-
-        type_vis = TypeVis(self.socket)
+        self.type_vis = TypeVis(self.node, self.idx, self.dtype, self.name, self.is_input)
+        self.type_vis.setStyleSheet("background-color: transparent;")
         proxy = QGraphicsProxyWidget(self)
-        proxy.setWidget(type_vis)
+        proxy.setWidget(self.type_vis)
 
-        if isinstance(self.socket, InputSocket):
+        if self.is_input:
             proxy.setPos(self.rect().x() + self.rect().width() + 5,
                          self.rect().y() + (self.rect().height() - proxy.boundingRect().height()) / 2)
         else:
@@ -43,4 +48,9 @@ class SocketVis(QObject, QGraphicsEllipseItem):
         self.setPen(QPen(QColor("#222222"), 1))
         self.setZValue(2)
         # self.setPos(self.pos_x, self.pos_y)
+
+    def mousePressEvent(self, event: QGraphicsSceneMouseEvent) -> None:
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+        return super().mousePressEvent(event)
 

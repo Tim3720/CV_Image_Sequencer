@@ -2,6 +2,7 @@ import colorsys
 from typing import Any, Optional, override
 from dataclasses import dataclass
 import numpy as np
+import cv2 as cv
 
 class ColorRegistry:
     _index = 0
@@ -64,24 +65,29 @@ class ColorImage(IOType):
 
 @dataclass
 class Option(IOType):
-    value: dict[str, Any]
+    value: str
+    options: dict[str, Any] 
 
+
+
+@dataclass
+class ThresholdType(IOType):
+    value: str
+    options = {
+            "Thresh Binary": cv.THRESH_BINARY,
+            "Thresh Triangle": cv.THRESH_TRIANGLE,
+            "Thresh Otsu": cv.THRESH_OTSU,
+            }
 
 
 @dataclass
 class Scalar(IOType):
     value: Any
-    min_value: Optional[Any]
-    max_value: Optional[Any]
 
 @dataclass
 class Int(Scalar):
     value: int
-    min_value: Optional[int] = None
-    max_value: Optional[int] = None
 
 @dataclass
 class Float(Scalar):
     value: float
-    min_value: Optional[float] = None
-    max_value: Optional[float] = None

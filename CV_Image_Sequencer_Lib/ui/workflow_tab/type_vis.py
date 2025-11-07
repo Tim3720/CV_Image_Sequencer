@@ -1,23 +1,27 @@
 from typing import Optional
-from PySide6.QtCore import QObject, Signal, Slot
-from PySide6.QtGui import QImage, QPixmap
+from PySide6.QtCore import Slot
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import QLabel, QHBoxLayout, QLineEdit, QSizePolicy, QWidget
 import numpy as np
 import cv2 as cv
 
-from ...assets.styles.style import STYLE
-from ...core.types import ColorImage, GrayScaleImage, IOType, Int
-from ...utils.source_manager import convert_cv_to_qt
 
-from ...core.nodes import InputSocket, Socket
+from ...assets.styles.style import STYLE
+from ...core.types import ColorImage, Float, GrayScaleImage, IOType, Int
+from ...core.nodes import Node
+from ...utils.source_manager import convert_cv_to_qt
 
 
 
 class TypeVis(QWidget):
 
-    def __init__(self, socket: Socket):
+    def __init__(self, node: Node, idx: int, dtype: type[IOType], name: str, is_input: bool):
         super().__init__()
-        self.socket: Socket = socket
+        self.node: Node = node
+        self.idx = idx
+        self.dtype: type[IOType] = dtype
+        self.name: str = name
+        self.is_input: bool = is_input
 
         self.init_ui()
 
@@ -26,24 +30,42 @@ class TypeVis(QWidget):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
-        if self.socket.dtype == ColorImage or self.socket.dtype == GrayScaleImage:
-            widget = ImageVis(self.socket)
-        elif self.socket.dtype == Int:
-            widget = IntVis(self.socket)
+        if self.dtype == ColorImage or self.dtype == GrayScaleImage:
+            self.widget = ImageVis(self.node, self.idx, self.dtype, self.name, self.is_input)
+        elif issubclass(self.dtype, Int):
+            self.widget = IntVis(self.node, self.idx, self.dtype, self.name, self.is_input)
+        elif issubclass(self.dtype, Float):
+            self.widget = FloatVis(self.node, self.idx, self.dtype, self.name, self.is_input)
         else:
-            widget = QLabel(self.socket.name)
+            self.widget = QLabel(self.name)
         
-        layout.addWidget(widget)
+        layout.addWidget(self.widget)
+
+    @Slot(object)
+    def new_input_data(self, data):
+        if isinstance(self.widget, ImageVis):
+            self.widget.new_img(data)
+        elif isinstance(self.widget, IntVis):
+            self.widget.on_new_input(data)
+        elif isinstance(self.widget, FloatVis):
+            self.widget.on_new_input(data)
 
 
 
 class ImageVis(QWidget):
 
-    def __init__(self, socket: Socket):
+    def __init__(self, node: Node, idx: int, dtype: type[IOType], name: str, is_input: bool):
         super().__init__()
         
-        self.socket = socket
-        self.socket.data_received.connect(self.new_img)
+        self.node = node
+        self.idx = idx
+        self.dtype = dtype
+        self.name = name
+        self.is_input = is_input
+
+        if not self.is_input:
+            node.new_results.connect(self.on_new_results)
+
         self.img_size = 30
         random_img = np.random.randint(0, 255, (self.img_size, self.img_size), np.uint8)
         self.image = convert_cv_to_qt(random_img)
@@ -52,8 +74,10 @@ class ImageVis(QWidget):
     def init_ui(self):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        self.setStyleSheet("background-color: transparent;")
 
-        label = QLabel(self.socket.name)
+        label = QLabel(self.name)
+        label.setStyleSheet("background-color: transparent;")
 
         self.image_label = QLabel()
         self.image_label.setStyleSheet("border: 1px solid black;")
@@ -64,46 +88,74 @@ class ImageVis(QWidget):
         layout.addWidget(label)
         layout.addWidget(self.image_label)
 
+
+    def on_new_results(self):
+        data = self.node.results[self.idx]
+        self.new_img(data)
+
     @Slot()
     def new_img(self, data):
         if data is None:
-            print(self.socket)
             return
-        self.image = convert_cv_to_qt(cv.resize(data.value, (self.img_size, self.img_size)))
-        self.image_label.setPixmap(QPixmap(self.image))
+        if data.value is None:
+            random_img = np.random.randint(0, 255, (self.img_size, self.img_size), np.uint8)
+            self.image = convert_cv_to_qt(random_img)
+            self.image_label.setPixmap(QPixmap(self.image))
+        else:
+            self.image = convert_cv_to_qt(cv.resize(data.value, (self.img_size, self.img_size)))
+            self.image_label.setPixmap(QPixmap(self.image))
 
 
 class IntVis(QWidget):
 
-    def __init__(self, socket: Socket):
+    def __init__(self, node: Node, idx: int, dtype: type[Int], name: str, is_input: bool):
         super().__init__()
         
-        self.socket = socket
+        self.node = node
+        self.idx = idx
+        self.dtype = dtype
+        self.name = name
+        self.is_input = is_input
 
         self.init_ui()
 
-        self.socket.data_received.connect(self.set_data)
-        self.input.textChanged.connect(self._set_data)
+        if self.is_input:
+            self.input.textChanged.connect(self._set_data)
+        else:
+            self.input.setReadOnly(True)
+            self.node.new_results.connect(self.on_new_results)
+
 
     def init_ui(self):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
+        self.setStyleSheet("background-color: transparent;")
 
-        label = QLabel(self.socket.name)
+        label = QLabel(self.name)
+        label.setStyleSheet("background-color: transparent;")
         layout.addWidget(label)
 
         self.input = QLineEdit()
         self.input.setFixedSize(40, 20)
+        self.input.setStyleSheet("border: 1px solid black;")
         self.input.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
-        if isinstance(self.socket, InputSocket) and not self.socket._manual_value is None:
-            self.input.setText(str(self.socket._manual_value))
+
+        default_value = self.node.default_values[self.idx]
+        if self.is_input and not default_value is None:
+            self.input.setText(str(default_value.value))
 
         layout.addWidget(self.input)
 
-    @Slot(IOType)
-    def set_data(self, data: Optional[IOType]):
+    @Slot()
+    def on_new_results(self):
+        data = self.node.results[self.idx]
         if data is None:
-            print(self.socket)
+            return
+        self.input.setText(str(data.value))
+
+    @Slot(Int)
+    def on_new_input(self, data: Optional[Int]):
+        if data is None:
             return
         self.input.setText(str(data.value))
 
@@ -112,13 +164,95 @@ class IntVis(QWidget):
         text = self.input.text()
         try: 
             value = int(text)
-            if isinstance(self.socket, InputSocket):
-                if self.socket.value_ok(Int(value=value)):
-                    self.socket.set_manual_value(Int(value))
-                    self.input.setStyleSheet(f"color: {STYLE["textcolor"]};")
-                else:
-                    self.input.setStyleSheet("color: red;")
-        except Exception as e:
-            print(e)
-            self.input.setStyleSheet("color: red;")
+            min_value = self.node.min_values[self.idx]
+            max_value = self.node.max_values[self.idx]
+            if not min_value is None and value < min_value.value:
+                self.input.setStyleSheet("color: red; border: 1px solid black")
+            elif not max_value is None and value > max_value.value:
+                self.input.setStyleSheet("color: red; border: 1px solid black")
+            else:
+                self.node.external_inputs[self.idx] = Int(value)
+                self.node.compute()
+                self.node.new_params.emit()
+
+                self.input.setStyleSheet(f"color: {STYLE["textcolor"]}; border: 1px solid black;")
+
+        except Exception:
+            self.input.setStyleSheet("color: red;border: 1px solid black;")
+
+class FloatVis(QWidget):
+
+    def __init__(self, node: Node, idx: int, dtype: type[Float], name: str, is_input: bool):
+        super().__init__()
+        
+        self.node = node
+        self.idx = idx
+        self.dtype = dtype
+        self.name = name
+        self.is_input = is_input
+
+        self.init_ui()
+
+        if self.is_input:
+            self.input.textChanged.connect(self._set_data)
+        else:
+            self.input.setReadOnly(True)
+            self.node.new_results.connect(self.on_new_results)
+
+
+    def init_ui(self):
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.setStyleSheet("background-color: transparent;")
+
+        label = QLabel(self.name)
+        label.setStyleSheet("background-color: transparent;")
+        layout.addWidget(label)
+
+        self.input = QLineEdit()
+        self.input.setFixedSize(40, 20)
+        self.input.setStyleSheet("border: 1px solid black;")
+        self.input.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+
+        default_value = self.node.default_values[self.idx]
+        if self.is_input and not default_value is None:
+            self.input.setText(str(default_value.value))
+
+        layout.addWidget(self.input)
+
+    @Slot()
+    def on_new_results(self):
+        data = self.node.results[self.idx]
+        if data is None:
+            return
+        self.input.setText(str(data.value))
+
+    @Slot(Int)
+    def on_new_input(self, data: Optional[Float]):
+        if data is None:
+            return
+        if self.input.hasFocus:
+            return
+        self.input.setText(str(data.value))
+
+    @Slot()
+    def _set_data(self):
+        text = self.input.text()
+        try: 
+            value = float(text)
+            min_value = self.node.min_values[self.idx]
+            max_value = self.node.max_values[self.idx]
+            if not min_value is None and value < min_value.value:
+                self.input.setStyleSheet("color: red; border: 1px solid black")
+            elif not max_value is None and value > max_value.value:
+                self.input.setStyleSheet("color: red; border: 1px solid black")
+            else:
+                self.node.external_inputs[self.idx] = Float(value)
+                self.node.compute()
+                self.node.new_params.emit()
+
+                self.input.setStyleSheet(f"color: {STYLE["textcolor"]}; border: 1px solid black;")
+
+        except Exception:
+            self.input.setStyleSheet("color: red;border: 1px solid black;")
 
