@@ -1,6 +1,6 @@
 import colorsys
-from typing import Any, Optional, override
-from dataclasses import dataclass
+from typing import Any, ClassVar, Optional, override
+from dataclasses import dataclass, field
 import numpy as np
 import cv2 as cv
 
@@ -66,19 +66,17 @@ class ColorImage(IOType):
 @dataclass
 class Option(IOType):
     value: str
-    options: dict[str, Any] 
-
+    options: ClassVar[dict[str, Any]]
 
 
 @dataclass
-class ThresholdType(IOType):
+class ThresholdType(Option):
     value: str
-    options = {
-            "Thresh Binary": cv.THRESH_BINARY,
-            "Thresh Triangle": cv.THRESH_TRIANGLE,
-            "Thresh Otsu": cv.THRESH_OTSU,
-            }
-
+    options: ClassVar[dict[str, Any]] = {
+        "Binary": cv.THRESH_BINARY,
+        "Triangle": cv.THRESH_TRIANGLE,
+        "Otsu": cv.THRESH_OTSU,
+    }
 
 @dataclass
 class Scalar(IOType):

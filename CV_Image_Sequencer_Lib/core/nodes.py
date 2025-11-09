@@ -9,8 +9,8 @@ class Node(QObject):
     new_results = Signal()
     new_inputs = Signal(object)
 
-    def __init__(self, graph: "Graph", parameter_template: list[tuple[str, type[IOType]]], result_template:
-                 list[tuple[str, type[IOType]]]):
+    def __init__(self, graph: "Graph", parameter_template: list[tuple[str, type[IOType]]] = [], result_template:
+                 list[tuple[str, type[IOType]]] = []):
         super().__init__()
 
         self.graph = graph

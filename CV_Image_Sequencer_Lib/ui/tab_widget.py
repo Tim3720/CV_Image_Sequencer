@@ -1,6 +1,5 @@
 import os
-from os.path import isfile
-from PySide6.QtWidgets import QTabBar, QWidget, QTabWidget, QVBoxLayout, QLabel, QLineEdit
+from PySide6.QtWidgets import QTabBar, QWidget, QTabWidget, QLineEdit
 from PySide6.QtCore import Signal
 import json
 

@@ -1,13 +1,13 @@
 from typing import Optional
 from PySide6.QtCore import Slot
 from PySide6.QtGui import QPixmap
-from PySide6.QtWidgets import QLabel, QHBoxLayout, QLineEdit, QSizePolicy, QWidget
+from PySide6.QtWidgets import QComboBox, QLabel, QHBoxLayout, QLineEdit, QMenu, QSizePolicy, QWidget
 import numpy as np
 import cv2 as cv
 
 
 from ...assets.styles.style import STYLE
-from ...core.types import ColorImage, Float, GrayScaleImage, IOType, Int
+from ...core.types import ColorImage, Float, GrayScaleImage, IOType, Int, Option
 from ...core.nodes import Node
 from ...utils.source_manager import convert_cv_to_qt
 
@@ -36,6 +36,8 @@ class TypeVis(QWidget):
             self.widget = IntVis(self.node, self.idx, self.dtype, self.name, self.is_input)
         elif issubclass(self.dtype, Float):
             self.widget = FloatVis(self.node, self.idx, self.dtype, self.name, self.is_input)
+        elif issubclass(self.dtype, Option):
+            self.widget = OptionVis(self.node, self.idx, self.dtype, self.name, self.is_input)
         else:
             self.widget = QLabel(self.name)
         
@@ -48,6 +50,8 @@ class TypeVis(QWidget):
         elif isinstance(self.widget, IntVis):
             self.widget.on_new_input(data)
         elif isinstance(self.widget, FloatVis):
+            self.widget.on_new_input(data)
+        elif isinstance(self.widget, OptionVis):
             self.widget.on_new_input(data)
 
 
@@ -231,7 +235,7 @@ class FloatVis(QWidget):
     def on_new_input(self, data: Optional[Float]):
         if data is None:
             return
-        if self.input.hasFocus:
+        if self.input.hasFocus():
             return
         self.input.setText(str(data.value))
 
@@ -256,3 +260,68 @@ class FloatVis(QWidget):
         except Exception:
             self.input.setStyleSheet("color: red;border: 1px solid black;")
 
+class OptionVis(QWidget):
+
+    def __init__(self, node: Node, idx: int, dtype: type[Option], name: str, is_input: bool):
+        super().__init__()
+        
+        self.node = node
+        self.idx = idx
+        self.dtype = dtype
+        self.name = name
+        self.is_input = is_input
+
+        self.init_ui()
+
+        if self.is_input:
+            self.input.currentTextChanged.connect(self.set_data)
+        else:
+            self.node.new_results.connect(self.on_new_results)
+
+    def init_ui(self):
+        layout = QHBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.setStyleSheet("background-color: transparent;")
+
+        label = QLabel(self.name)
+        label.setStyleSheet("background-color: transparent;")
+        layout.addWidget(label)
+
+        self.input = QComboBox()
+        self.input.addItems(list(self.dtype.options))
+        self.input.setStyleSheet("border: 1px solid black;")
+        self.input.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Minimum)
+        self.input.setStyleSheet(f"""
+                QComboBox {{
+                    font-size: 11px;
+                    border: 1px solid #333;
+                }}
+                QComboBox QAbstractItemView {{
+                    font-size: 11px;  /* font size for the drop-down items */
+                    background: {STYLE["bg_default"]};
+                }}
+        """)
+
+        if not self.is_input:
+            self.input.setEnabled(False)
+
+        layout.addWidget(self.input)
+
+    def set_data(self):
+        text = self.input.currentText()
+        self.node.external_inputs[self.idx] = self.dtype(value=text)
+        self.node.compute()
+        self.node.new_params.emit()
+
+    @Slot()
+    def on_new_results(self):
+        data = self.node.results[self.idx]
+        if data is None:
+            return
+        self.input.setCurrentText(data.value)
+
+    @Slot(Option)
+    def on_new_input(self, data: Optional[Option]):
+        if data is None:
+            return
+        self.input.setCurrentText(data.value)

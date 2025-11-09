@@ -20,8 +20,10 @@ class IDXNode(Node):
 
 
 class SourceNode(Node):
-    def __init__(self, graph: Graph):
-        super().__init__(graph, [("Idx", Int)], [("Image", GrayScaleImage)])
+    def __init__(self, graph: Graph, n_frames: int = 1):
+        super().__init__(graph, [("Offset", Int)], [("Image", GrayScaleImage) for _ in
+                                                 range(n_frames)])
+        self.n_frames = n_frames
 
         self.path = "/home/tim/Documents/Arbeit/HDF5Test/SO298_298-10-1_PISCO2_20230422-2334_Results/Images/"
         self.files = list(os.listdir(self.path))
@@ -36,11 +38,12 @@ class SourceNode(Node):
     @override
     def compute_function(self, inputs):
         if inputs[0] is None:
-            file = random.choice(self.files)
+            start_idx = random.randint(0, len(self.files))
         else:
-            file = self.files[inputs[0].value]
-        img = cv.imread(os.path.join(self.path, file), cv.IMREAD_GRAYSCALE)
-        return [GrayScaleImage(value=img)]
+            start_idx = inputs[0].value
+        files = [self.files[i % len(self.files)] for i in range(start_idx, start_idx + self.n_frames)]
+        return [GrayScaleImage(value=cv.imread(os.path.join(self.path, file), cv.IMREAD_GRAYSCALE)) for file in files]
+
 
 class ABSDiffNode(Node):
     def __init__(self, graph: Graph):
@@ -59,11 +62,12 @@ class ABSDiffNode(Node):
         img = cv.absdiff(img1, img2)
         return [GrayScaleImage(value=img)]
 
+
 class ThresholdNode(Node):
     def __init__(self, graph: Graph):
         super().__init__(graph, [("Image 1", GrayScaleImage), ("Threshold value", Float),
-                                 ("New value", Int), ("Threshold type", ThresholdType)],
-                         [("Result Image", GrayScaleImage), ("Threshold value", Float)])
+                                 ("New value", Int), ("Type", ThresholdType)],
+                         [("Result Image", GrayScaleImage), ("Threshold value", Float), ("Type", ThresholdType)])
         self.name = "ThresholdNode"
 
         self.min_values[1] = Float(value=0)
@@ -73,19 +77,35 @@ class ThresholdNode(Node):
 
         self.default_values[1] = Float(value=10)
         self.default_values[2] = Int(value=255)
-        self.default_values[3] = ThresholdType(value="Thresh Binary")
+        self.default_values[3] = ThresholdType(value="Binary")
 
     @override
     def compute_function(self, inputs: list):
+        if inputs[0] is None:
+            return [GrayScaleImage(value=None), Float(value=0), inputs[3]]
+        img1 = inputs[0].value
+        if img1 is None:
+            return [GrayScaleImage(value=None), Float(value=0), inputs[3]]
+
+        t, img = cv.threshold(img1, inputs[1].value, inputs[2].value, ThresholdType.options[inputs[3].value])
+        return [GrayScaleImage(value=img), Float(value=t), inputs[3]]
+
+
+class InvertNode(Node):
+    def __init__(self, graph: Graph):
+        super().__init__(graph, [("Image 1", GrayScaleImage)],
+                         [("Result Image", GrayScaleImage)])
+        self.name = "InvertNode"
+
+    @override
+    def compute_function(self, inputs: list[Optional[GrayScaleImage]]):
         if inputs[0] is None:
             return [GrayScaleImage(value=None)]
         img1 = inputs[0].value
         if img1 is None:
             return [GrayScaleImage(value=None)]
-
-        t, img = cv.threshold(img1, inputs[1].value, inputs[2].value, ThresholdType.options[inputs[3].value])
-        return [GrayScaleImage(value=img), Float(value=t)]
-
+        img = cv.bitwise_not(img1)
+        return [GrayScaleImage(value=img)]
 
 
 
