@@ -19,8 +19,8 @@ class ConnectionVis(QObject, QGraphicsPathItem):
         self.input_socket: Optional[SocketVis] = None
         self.output_socket: Optional[SocketVis] = None
 
-        self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemStacksBehindParent, True)
-        self.setZValue(-1)
+        # self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemStacksBehindParent, True)
+        self.setZValue(5)
 
 
     def add_input_socket(self, socket_vis: SocketVis):

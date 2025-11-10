@@ -33,8 +33,6 @@ class SourceNode(Node):
         self.max_values = [Int(value=len(self.files) - 1)]
         self.default_values = [Int(value=1)]
 
-
-
     @override
     def compute_function(self, inputs):
         if inputs[0] is None:
@@ -43,6 +41,12 @@ class SourceNode(Node):
             start_idx = inputs[0].value
         files = [self.files[i % len(self.files)] for i in range(start_idx, start_idx + self.n_frames)]
         return [GrayScaleImage(value=cv.imread(os.path.join(self.path, file), cv.IMREAD_GRAYSCALE)) for file in files]
+
+    @override
+    def to_dict(self):
+        d = super().to_dict()
+        d["params"] = {"n_frames": self.n_frames}
+        return d
 
 
 class ABSDiffNode(Node):
@@ -107,7 +111,66 @@ class InvertNode(Node):
         img = cv.bitwise_not(img1)
         return [GrayScaleImage(value=img)]
 
+class MinNode(Node):
+    def __init__(self, graph: Graph):
+        super().__init__(graph, [("Image 1", GrayScaleImage), ("Image 2", GrayScaleImage)],
+                         [("Result Image", GrayScaleImage)])
+        self.name = "MinNode"
 
+    @override
+    def compute_function(self, inputs: list[Optional[GrayScaleImage]]):
+        if inputs[0] is None or inputs[1] is None:
+            return [GrayScaleImage(value=None)]
+        img1 = inputs[0].value
+        img2 = inputs[1].value
+        if img1 is None or img2 is None:
+            return [GrayScaleImage(value=None)]
+        img = np.min([img1, img2], axis=0)
+        return [GrayScaleImage(value=img)]
+
+
+class MaxNode(Node):
+    def __init__(self, graph: Graph):
+        super().__init__(graph, [("Image 1", GrayScaleImage), ("Image 2", GrayScaleImage)],
+                         [("Result Image", GrayScaleImage)])
+        self.name = "MaxNode"
+
+    @override
+    def compute_function(self, inputs: list[Optional[GrayScaleImage]]):
+        if inputs[0] is None or inputs[1] is None:
+            return [GrayScaleImage(value=None)]
+        img1 = inputs[0].value
+        img2 = inputs[1].value
+        if img1 is None or img2 is None:
+            return [GrayScaleImage(value=None)]
+        img = np.max([img1, img2], axis=0)
+        return [GrayScaleImage(value=img)]
+
+
+class ClampedDiffNode(Node):
+    def __init__(self, graph: Graph):
+        super().__init__(graph, [("Image 1", GrayScaleImage), ("Image 2", GrayScaleImage),
+                                 ("Cutoff", Int)],
+                         [("Result Image", GrayScaleImage)])
+
+        self.min_values[2] = Int(0)
+        self.max_values[2] = Int(255)
+        self.default_values[2] = Int(0)
+
+        self.name = "ClampedDiff"
+
+    @override
+    def compute_function(self, inputs: list):
+        if inputs[0] is None or inputs[1] is None:
+            return [GrayScaleImage(value=None)]
+        img1 = inputs[0].value
+        img2 = inputs[1].value
+        if img1 is None or img2 is None:
+            return [GrayScaleImage(value=None)]
+        res = img1.astype(np.int32) - img2.astype(np.int32)
+        res[res < inputs[2].value] = 0
+        res = res.astype(np.uint8)
+        return [GrayScaleImage(value=res)]
 
 # class BlackBoxOuterNode(Node):
 #     def __init__(self, graph: Graph, parameter_template: list[type], result_template: list[type]):

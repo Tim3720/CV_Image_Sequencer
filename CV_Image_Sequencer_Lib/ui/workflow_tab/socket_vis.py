@@ -28,7 +28,7 @@ class SocketVis(QObject, QGraphicsEllipseItem):
         self.color = QColor.fromRgb(*self.dtype.color)
         self.init_ui()
 
-        self.setZValue(2)
+        self.setZValue(10)
 
     def init_ui(self):
         self.type_vis = TypeVis(self.node, self.idx, self.dtype, self.name, self.is_input)

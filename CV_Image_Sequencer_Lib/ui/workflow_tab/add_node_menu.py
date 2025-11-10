@@ -5,8 +5,8 @@ from PySide6.QtWidgets import (
     QMenu,
 )
 
-
-from ...core.custom_nodes import (SourceNode, ABSDiffNode, ThresholdNode, InvertNode)
+from ...core.custom_nodes import (MaxNode, MinNode, SourceNode, ABSDiffNode,
+                                  ThresholdNode, InvertNode, ClampedDiffNode)
 
 
 class AddNodeMenu(QMenu):
@@ -45,15 +45,18 @@ class AddNodeMenu(QMenu):
         action = QAction("Absolute Diff", self)
         self._actions[action] = ABSDiffNode
         menu_1C.addAction(action)
-        # action = QAction("Clamped Diff", self)
-        # self._actions[action] = ClampedDiffNode
-        # menu_1C.addAction(action)
-        # action = QAction("Pixelwise Min", self)
-        # self._actions[action] = MinNode
-        # menu_1C.addAction(action)
-        # action = QAction("Pixelwise Max", self)
-        # self._actions[action] = MaxNode
-        # menu_1C.addAction(action)
+        action = QAction("Clamped Diff", self)
+        self._actions[action] = ClampedDiffNode
+        menu_1C.addAction(action)
+        action = QAction("Pixelwise Min", self)
+        self._actions[action] = MinNode
+        menu_1C.addAction(action)
+        action = QAction("Pixelwise Max", self)
+        self._actions[action] = MaxNode
+        menu_1C.addAction(action)
+        action = QAction("Invert", self)
+        self._actions[action] = InvertNode
+        menu_1C.addAction(action)
 
 
     def run(self):

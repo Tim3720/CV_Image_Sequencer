@@ -1,27 +1,83 @@
 {
   "nodes": {
-    "7ff9d3fa-1887-480d-b498-9d8b19ad97ed": "SourceNode",
-    "f0d9c22a-6b60-4db5-83a8-35cd3030bb98": "SourceNode",
-    "8418c4c6-a471-402f-b413-e908f5479ff3": "ABSDiffNode",
-    "5d63d8e1-6ac1-4046-a1b9-d7d522f9d8c7": "ThresholdNode"
+    "e0ae3065-bb07-4914-8092-80449e722fb3": {
+      "node": {
+        "node_type": "SourceNode",
+        "params": {
+          "n_frames": 3
+        },
+        "external_inputs": [
+          56
+        ]
+      },
+      "x": -334.0,
+      "y": 157.0
+    },
+    "a7c8fcf9-28a8-4cbd-a2bf-3c5ee66189d0": {
+      "node": {
+        "node_type": "ABSDiffNode",
+        "params": {},
+        "external_inputs": [
+          null,
+          null
+        ]
+      },
+      "x": -87.0,
+      "y": 162.0
+    },
+    "23e50765-7541-4299-98ad-0207e994ef34": {
+      "node": {
+        "node_type": "ThresholdNode",
+        "params": {},
+        "external_inputs": [
+          null,
+          null,
+          null,
+          "Triangle"
+        ]
+      },
+      "x": 162.0,
+      "y": 53.0
+    },
+    "c3d3b39f-7e93-4af9-8c3c-9ad5b4041d90": {
+      "node": {
+        "node_type": "ThresholdNode",
+        "params": {},
+        "external_inputs": [
+          null,
+          1.0,
+          255,
+          "Otsu"
+        ]
+      },
+      "x": 484.0,
+      "y": 50.0
+    }
   },
   "connections": {
-    "8418c4c6-a471-402f-b413-e908f5479ff3": [
+    "a7c8fcf9-28a8-4cbd-a2bf-3c5ee66189d0": [
       [
         0,
-        "7ff9d3fa-1887-480d-b498-9d8b19ad97ed",
+        "e0ae3065-bb07-4914-8092-80449e722fb3",
         0
       ],
       [
         1,
-        "f0d9c22a-6b60-4db5-83a8-35cd3030bb98",
+        "e0ae3065-bb07-4914-8092-80449e722fb3",
+        1
+      ]
+    ],
+    "23e50765-7541-4299-98ad-0207e994ef34": [
+      [
+        0,
+        "a7c8fcf9-28a8-4cbd-a2bf-3c5ee66189d0",
         0
       ]
     ],
-    "5d63d8e1-6ac1-4046-a1b9-d7d522f9d8c7": [
+    "c3d3b39f-7e93-4af9-8c3c-9ad5b4041d90": [
       [
         0,
-        "8418c4c6-a471-402f-b413-e908f5479ff3",
+        "23e50765-7541-4299-98ad-0207e994ef34",
         0
       ]
     ]

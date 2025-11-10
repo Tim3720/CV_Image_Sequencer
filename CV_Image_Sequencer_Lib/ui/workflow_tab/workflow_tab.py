@@ -2,6 +2,7 @@ from typing import Optional
 from PySide6.QtWidgets import QFileDialog, QInputDialog, QPushButton, QSplitter, QWidget, QLabel, QVBoxLayout, QHBoxLayout
 from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt, QSize, Slot
+from cv2.aruco import extendDictionary
 import numpy as np
 import cv2 as cv
 import json
@@ -26,7 +27,7 @@ class WorkflowTabWidget(QWidget):
         self.graph_vis = GraphVis()
 
         self.init_ui()
-        self.test()
+        # self.test()
 
         self.graph_vis.new_results.connect(self.on_new_results)
         self.graph_vis.new_inputs.connect(self.on_new_inputs)
@@ -165,7 +166,7 @@ class WorkflowTabWidget(QWidget):
         file, _ = QFileDialog.getSaveFileName(None, "Workflow file", "/home/tim/Documents/OtherProjects/CV_Image_Sequencer/Workflows/", "*.json")
         if not file.endswith(".json"):
             file += ".json"
-        state = self.graph_vis.graph.to_dict()
+        state = self.graph_vis.to_dict()
         with open(file, "w") as f:
             json.dump(state, f, indent=2)
 
@@ -175,11 +176,44 @@ class WorkflowTabWidget(QWidget):
         with open(file, "r") as f:
             state = json.load(f)
 
+        self.load_state(state)
+
     def load_state(self, state: dict):
         nodes = state["nodes"]
         connections = state["connections"]
 
-        # remove all current notes
+        # unselect all other nodes:
         for node_vis in list(self.graph_vis.node_visualizations.values()):
-            node_vis.delete.emit()
+            node_vis.setSelected(False)
+
+
+        uuid_to_nodes: dict[str, Node] = {}
+        for uuid, node_vis_info in nodes.items():
+            node_info = node_vis_info["node"]
+            node_type = Serializable._registry[node_info["node_type"]]
+            if not issubclass(node_type, Node):
+                continue
+
+            node = self.graph_vis.add_node(node_type, True,
+                                                          node_vis_info["x"],
+                                                          node_vis_info["y"],
+                                                          **node_info["params"])
+            uuid_to_nodes[uuid] = node
+            external_inputs = []
+            for i, (_, dtype) in enumerate(node.parameter_template):
+                if node_info["external_inputs"][i] is None:
+                    external_inputs.append(None)
+                else:
+                    value = dtype(node_info["external_inputs"][i])
+                    external_inputs.append(value)
+            node.external_inputs = external_inputs
+            node.new_inputs.emit(node.external_inputs)
+            self.graph_vis.node_visualizations[node].setSelected(True)
+
+        for param_uuid, connection_data in connections.items():
+            for (param_idx, result_uuid, result_idx) in connection_data:
+                self.graph_vis.add_connection(uuid_to_nodes[param_uuid], param_idx,
+                                              uuid_to_nodes[result_uuid], result_idx)
+
+
 

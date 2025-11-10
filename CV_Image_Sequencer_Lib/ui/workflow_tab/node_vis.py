@@ -40,6 +40,7 @@ class NodeVis(QObject, QGraphicsRectItem):
         self.init_ui()
 
         self.node.new_inputs.connect(self.update_inputs)
+        self.setZValue(1)
 
 
     def init_ui(self):

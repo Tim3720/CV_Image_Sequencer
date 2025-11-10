@@ -1,7 +1,6 @@
 from typing import IO, Any, Optional
 from PySide6.QtCore import QObject, Signal, Slot
 from .types import IOType, Serializable
-from uuid import uuid4
 
 
 class Node(QObject, Serializable):
@@ -63,6 +62,15 @@ class Node(QObject, Serializable):
         # self.new_params.emit()
         self.new_results.emit()
 
+    def to_dict(self):
+        external_inputs = []
+        for data in self.external_inputs:
+            if data is None:
+                external_inputs.append(None)
+            else:
+                external_inputs.append(data.value)
+        return {"node_type": self.__class__.__name__, "params": {}, "external_inputs": external_inputs}
+
 class Graph(QObject):
 
     def __init__(self):
@@ -112,26 +120,5 @@ class Graph(QObject):
                 inputs.append(None)
         return inputs
 
-    def to_dict(self):
-        node_to_uuid: dict[Node, str] = {}
-        nodes: dict[str, str] = {}
-        connections: dict[str, list[tuple[int, str, int]]] = {}   # (param_node): (param_idx, result_node, result_idx)
-        for param_node in self.nodes:
-            uuid = str(uuid4())
-            nodes[uuid] = type(param_node).__name__
-            node_to_uuid[param_node] = uuid
-
-        for param_node, connection in self.connections.items():
-            for param_idx, c_data in enumerate(connection):
-                if c_data is None:
-                    continue
-                result_node, result_idx = c_data
-                if not node_to_uuid[param_node] in connections:
-                    connections[node_to_uuid[param_node]] = []
-                connections[node_to_uuid[param_node]].append((param_idx,
-                                                              node_to_uuid[result_node],
-                                                              result_idx))
-
-        state = {"nodes": nodes, "connections": connections}
-        return state
+    # def to_dict(self):
 

@@ -3,7 +3,7 @@ from PySide6.QtCore import QPoint, QPointF, Signal, Slot
 from PySide6.QtGui import QMouseEvent, QPainter, Qt
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsSceneMouseEvent, QGraphicsView, QVBoxLayout, QWidget
 
-from pprint import pprint
+from uuid import uuid4
 
 from CV_Image_Sequencer_Lib.core.nodes import Node, Graph
 from CV_Image_Sequencer_Lib.core.types import IOType
@@ -39,8 +39,8 @@ class GraphVis(QWidget):
         self.graph = Graph()
 
         self.node_visualizations: dict[Node, NodeVis] = {}  # node_uuid: NodeVis
-        self.parameter_connections: dict[tuple[Node, int], ConnectionVis] = {}    # (Input Node, input idx): ConnectionVis
-        self.result_connections: dict[tuple[Node, int], ConnectionVis] = {}    # (Output Node, Output idx): ConnectionVis
+        self.connections: dict[tuple[Node, int, Node, int], ConnectionVis] = {} 
+        # descriptor for self.connections: (param_node, param_idx, result_node, result_idx): connection_vis
         self.node_vis_watching: Optional[NodeVis] = None
 
         self.init_ui()
@@ -61,7 +61,7 @@ class GraphVis(QWidget):
         layout.addWidget(self.view)
 
 
-    def add_node(self, node_type: type[Node], add_to_graph: bool = True, x: float = 0, y: float = 0, **node_kwargs):
+    def add_node(self, node_type: type[Node], add_to_graph: bool = True, x: float = 0, y: float = 0, **node_kwargs) -> Node:
         node = node_type(self.graph, **node_kwargs)
         node_vis = NodeVis(node)
         self.node_visualizations[node] = node_vis
@@ -79,6 +79,7 @@ class GraphVis(QWidget):
 
         self.scene.addItem(node_vis)
         node.compute()
+        return node
 
     @Slot()
     def delete_node(self):
@@ -90,16 +91,19 @@ class GraphVis(QWidget):
             return
 
         node = sender.node
-        to_delete = []
+
         # delete connections:
-        for (n, idx), c in self.parameter_connections.items():
-            if n == node:
-                to_delete.append(c)
-        for (n, idx), c in self.result_connections.items():
-            if n == node:
+        to_delete = []
+        for (param_node, _, result_node, _), c in self.connections.items():
+            if param_node == node or result_node == node:
                 to_delete.append(c)
         for c in to_delete:
             c.delete.emit()
+
+        for socket_vis in sender.input_sockets:
+            socket_vis.clicked.disconnect(self.make_temp_connection)
+        for socket_vis in sender.output_sockets:
+            socket_vis.clicked.disconnect(self.make_temp_connection)
 
         self.graph.remove_node(sender.node)
         self.node_visualizations.pop(sender.node)
@@ -172,11 +176,10 @@ class GraphVis(QWidget):
 
         if not sender.input_socket is None and sender.input_socket.is_input:
             self.graph.disconnect_nodes(sender.input_socket.node, sender.input_socket.idx)
-            connection_descriptor = (sender.input_socket.node, sender.input_socket.idx)
-            if connection_descriptor in self.parameter_connections:
-                self.parameter_connections.pop(connection_descriptor)
-            if connection_descriptor in self.result_connections:
-                self.result_connections.pop(connection_descriptor)
+            for connection_descriptor, c in self.connections.items():
+                if c == sender:
+                    self.connections.pop(connection_descriptor)
+                    break
 
         self.scene.removeItem(sender)
         sender.deleteLater()
@@ -192,8 +195,7 @@ class GraphVis(QWidget):
         c.update_path()
         c.delete.connect(self.remove_connection)
 
-        self.parameter_connections[(parameter_node, parameter_idx)] = c
-        self.result_connections[(result_node, result_idx)] = c
+        self.connections[(parameter_node, parameter_idx, result_node, result_idx)] = c
 
         self.node_visualizations[parameter_node].node_vis_position_changed.connect(c.update_path)
         self.node_visualizations[result_node].node_vis_position_changed.connect(c.update_path)
@@ -239,3 +241,30 @@ class GraphVis(QWidget):
         if self.node_vis_watching is None:
             return
         self.new_inputs.emit(inputs)
+
+    def to_dict(self):
+        node_to_uuid: dict[Node, str] = {}
+        nodes: dict[str, dict] = {}
+        connections: dict[str, list[tuple[int, str, int]]] = {}   # (param_node): (param_idx, result_node, result_idx)
+        for param_node, param_node_vis in self.node_visualizations.items():
+            uuid = str(uuid4())
+            nodes[uuid] = {}
+            nodes[uuid]["node"] = param_node.to_dict()
+            node_to_uuid[param_node] = uuid
+            nodes[uuid]["x"] = param_node_vis.scenePos().x()
+            nodes[uuid]["y"] = param_node_vis.scenePos().y()
+
+        for param_node, connection in self.graph.connections.items():
+            for param_idx, c_data in enumerate(connection):
+                if c_data is None:
+                    continue
+                result_node, result_idx = c_data
+                if not node_to_uuid[param_node] in connections:
+                    connections[node_to_uuid[param_node]] = []
+                connections[node_to_uuid[param_node]].append((param_idx,
+                                                              node_to_uuid[result_node],
+                                                              result_idx))
+
+        state = {"nodes": nodes, "connections": connections}
+        return state
+
