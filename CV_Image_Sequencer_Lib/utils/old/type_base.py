@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Any
 import colorsys
-from dataclasses import dataclass
 from typing import Type, Dict, Any, TypeVar
 
 T = TypeVar("T", bound="Serializable")

@@ -3,12 +3,11 @@ from PySide6.QtCore import QObject, QTimer, Signal
 from PySide6.QtGui import QImage
 import cv2 as cv
 from cv2.typing import MatLike
-import numpy as np
 
-from .types import Image1C, Image3C
+from ..core.types import ColorImage, GrayScaleImage
 
 class SourceManager(QObject):
-    frame_ready = Signal(Image3C)
+    frame_ready = Signal(ColorImage)
 
     def __init__(self):
         super().__init__()
@@ -58,7 +57,7 @@ class SourceManager(QObject):
                                            self.image_files[self.current_frame_idx]))
 
         self.current_frame = frame
-        self.frame_ready.emit(Image3C(value=frame))
+        self.frame_ready.emit(ColorImage(value=frame))
 
     def get_next_n_frames(self, n, offset: int = 0, grayscale: bool = False):
         indices = []
@@ -80,9 +79,9 @@ class SourceManager(QObject):
                 if not ret:
                     return self.stop()
                 if grayscale:
-                    frame = Image1C(value=cv.cvtColor(frame, cv.COLOR_BGR2GRAY))
+                    frame = GrayScaleImage(value=cv.cvtColor(frame, cv.COLOR_BGR2GRAY))
                 else:
-                    frame = Image3C(value=frame)
+                    frame = ColorImage(value=frame)
                 output.append(frame)
             self.video_capture.set(cv.CAP_PROP_POS_FRAMES, self.current_frame_idx)
         else:
@@ -90,11 +89,11 @@ class SourceManager(QObject):
                 return
             for index in indices:
                 if grayscale:
-                    frame = Image1C(value=cv.imread(os.path.join(self.image_directory,
+                    frame = GrayScaleImage(value=cv.imread(os.path.join(self.image_directory,
                                                self.image_files[index]),
                                       cv.IMREAD_GRAYSCALE))
                 else:
-                    frame = Image3C(value=cv.imread(os.path.join(self.image_directory,
+                    frame = ColorImage(value=cv.imread(os.path.join(self.image_directory,
                                                self.image_files[index])))
                 output.append(frame)
         return output
@@ -102,10 +101,10 @@ class SourceManager(QObject):
 
     def emit_frame(self):
         if self.current_frame is not None:
-            self.frame_ready.emit(Image3C(value=self.current_frame))
+            self.frame_ready.emit(ColorImage(value=self.current_frame))
 
-    def get_current_frame(self) -> Image3C:
-        return Image3C(value=self.current_frame)
+    def get_current_frame(self) -> ColorImage:
+        return ColorImage(value=self.current_frame)
 
     def stop(self):
         self.timer.stop()

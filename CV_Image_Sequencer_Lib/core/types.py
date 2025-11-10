@@ -1,8 +1,19 @@
 import colorsys
-from typing import Any, ClassVar, Optional, override
-from dataclasses import dataclass, field
+from typing import Any, ClassVar, Optional, override, TypeVar, Dict, Type
+from dataclasses import dataclass
 import numpy as np
 import cv2 as cv
+
+
+T = TypeVar("T", bound="Serializable")
+class Serializable:
+    _registry: Dict[str, Type["Serializable"]] = {}
+
+    def __init_subclass__(cls, **kwargs):
+        """Automatically register subclasses by class name."""
+        super().__init_subclass__(**kwargs)
+        Serializable._registry[cls.__name__] = cls
+
 
 class ColorRegistry:
     _index = 0

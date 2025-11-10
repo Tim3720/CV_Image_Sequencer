@@ -4,6 +4,7 @@ from PySide6.QtGui import QPixmap
 from PySide6.QtCore import Qt, QSize, Slot
 import numpy as np
 import cv2 as cv
+import json
 
 from CV_Image_Sequencer_Lib.core.types import ColorImage, GrayScaleImage
 
@@ -12,8 +13,7 @@ from ...core.nodes import Graph, Node
 from ...core.custom_nodes import ABSDiffNode, SourceNode, ThresholdNode
 from .graph_vis import GraphVis
 
-from ...utils.types import Image1C, Image3C
-from ...utils.type_base import IOType
+from ...core.types import IOType, Serializable
 from ...utils.source_manager import SourceManager, convert_cv_to_qt
 from ...assets.styles.style import STYLE
 
@@ -73,6 +73,14 @@ class WorkflowTabWidget(QWidget):
         button_bar = QWidget()
         button_bar_layout = QHBoxLayout(button_bar)
         button_bar_layout.setContentsMargins(0, 0, 0, 0)
+
+        save_button = QPushButton("Save workflow")
+        save_button.clicked.connect(self.save_workflow)
+        button_bar_layout.addWidget(save_button)
+
+        load_button = QPushButton("Load workflow")
+        load_button.clicked.connect(self.load_workflow)
+        button_bar_layout.addWidget(load_button)
 
         main_layout.addStretch()
         main_layout.addWidget(button_bar)
@@ -153,45 +161,25 @@ class WorkflowTabWidget(QWidget):
         self.input_frame_label.setPixmap(QPixmap())
         self.output_frame_label.setPixmap(QPixmap())
 
-    # def show_data(self, data_package: tuple[list[IOType], Node]):
-    #     data, _ = data_package
-    #     frames: list[np.ndarray] = []
-    #     color = False
-    #     for elem in data:
-    #         if isinstance(elem, Image1C) and not elem.value is None:
-    #             frames.append(elem.value)
-    #         elif isinstance(elem, Image3C) and not elem.value is None:
-    #             frames.append(elem.value)
-    #             color = True
-    #
-    #     if color:
-    #         for frame in frames:
-    #             if len(frame.shape) == 2 or frame.shape[2] == 1:
-    #                 frame = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-    #
-    #     if frames:
-    #         frame = np.concatenate(frames, axis=0)
-    #         self.update_frame(frame)
-    #     else:
-    #         self.update_frame(None)
-    #
-    # def update_frame(self, frame: np.ndarray | None):
-    #     if frame is None:
-    #         self.frame_label.setPixmap(QPixmap())
-    #         self.frame_label.setText("Input not connected")
-    #         return
-    #
-    #     qimg = convert_cv_to_qt(frame)
-    #     pixmap = QPixmap.fromImage(qimg)
-    #     pixmap_scaled = pixmap.scaled(self.org_img_size, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
-    #     self.frame_label.setPixmap(pixmap_scaled)
-    #
-    # def load_state(self, d: dict):
-    #     ...
-    #
-    # def save_state(self) -> dict:
-    #     print(self.workflow_manager.graph_manager._uuid_to_nodes)
-    #     print(self.workflow_manager.graph_manager._node_connections)
-    #     return {}
-    #
-    #
+    def save_workflow(self):
+        file, _ = QFileDialog.getSaveFileName(None, "Workflow file", "/home/tim/Documents/OtherProjects/CV_Image_Sequencer/Workflows/", "*.json")
+        if not file.endswith(".json"):
+            file += ".json"
+        state = self.graph_vis.graph.to_dict()
+        with open(file, "w") as f:
+            json.dump(state, f, indent=2)
+
+
+    def load_workflow(self):
+        file, _ = QFileDialog.getOpenFileName(None, "Workflow file", "/home/tim/Documents/OtherProjects/CV_Image_Sequencer/Workflows/", "*.json")
+        with open(file, "r") as f:
+            state = json.load(f)
+
+    def load_state(self, state: dict):
+        nodes = state["nodes"]
+        connections = state["connections"]
+
+        # remove all current notes
+        for node_vis in list(self.graph_vis.node_visualizations.values()):
+            node_vis.delete.emit()
+

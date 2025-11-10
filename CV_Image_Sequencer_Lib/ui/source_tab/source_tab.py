@@ -1,9 +1,8 @@
 from PySide6.QtWidgets import QHBoxLayout, QInputDialog, QWidget, QLabel, QVBoxLayout, QFileDialog
 from PySide6.QtGui import QPixmap
 from PySide6.QtCore import QSize, Qt, Signal, Slot
-import numpy as np
 
-from CV_Image_Sequencer_Lib.utils.types import Image3C
+from ...core.types import ColorImage
 
 from ...assets.styles.style import STYLE
 from ...utils.source_manager import SourceManager, convert_cv_to_qt
@@ -99,8 +98,8 @@ class SourcePlayerTab(QWidget):
         self.previous_frame_button.setDisabled(self.playing_video)
 
 
-    @Slot(Image3C)
-    def update_frame(self, frame: Image3C):
+    @Slot(ColorImage)
+    def update_frame(self, frame: ColorImage):
         # convert from cv to qt:
         if frame.value is None:
             return
