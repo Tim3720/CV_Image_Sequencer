@@ -7,10 +7,10 @@ import numpy as np
 import cv2 as cv
 import json
 
-from CV_Image_Sequencer_Lib.core.types import ColorImage, GrayScaleImage
 
 
-from ...core.nodes import Graph, Node
+from ...core.types import ColorImage, GrayScaleImage
+from ...core.nodes import Node
 from ...core.custom_nodes import ABSDiffNode, SourceNode, ThresholdNode
 from .graph_vis import GraphVis
 

@@ -2,7 +2,6 @@ from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import (QGraphicsEllipseItem, QGraphicsProxyWidget, QGraphicsSceneMouseEvent)
 from PySide6.QtGui import QColor, QBrush, QMouseEvent, QPen, Qt
 
-from CV_Image_Sequencer_Lib.core.types import IOType
 
 from .type_vis import TypeVis
 from ...core.nodes import Node
