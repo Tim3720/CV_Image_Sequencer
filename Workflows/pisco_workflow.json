@@ -1,328 +1,149 @@
 {
-  "nodes": [
-    {
-      "type": "GrayScaleSourceNode",
-      "type_args": {
-        "n_frames": 4
+  "nodes": {
+    "eaeb1cc1-8737-4dcb-941b-1fff84f2ce8f": {
+      "node": {
+        "node_type": "SourceNode",
+        "params": {
+          "n_frames": 4
+        },
+        "external_inputs": [
+          11
+        ]
       },
-      "x": -370.5,
-      "y": 98.5,
-      "connections": [],
-      "values": [
-        "0"
-      ],
-      "id": "7ef5aa63-4e6a-49b9-88f8-480e6f4e834c"
+      "x": -146.0,
+      "y": 112.0
     },
-    {
-      "type": "MinNode",
-      "type_args": {},
-      "x": -75.0,
-      "y": 12.5,
-      "connections": [
-        {
-          "input": 0,
-          "output": {
-            "node": "7ef5aa63-4e6a-49b9-88f8-480e6f4e834c",
-            "index": 0
-          }
-        },
-        {
-          "input": 1,
-          "output": {
-            "node": "7ef5aa63-4e6a-49b9-88f8-480e6f4e834c",
-            "index": 1
-          }
-        }
-      ],
-      "values": [
-        null,
-        null
-      ],
-      "id": "6fb133b8-d07f-4282-95d3-1d2bfae1d727"
-    },
-    {
-      "type": "MinNode",
-      "type_args": {},
-      "x": -88.0,
-      "y": 183.5,
-      "connections": [
-        {
-          "input": 0,
-          "output": {
-            "node": "7ef5aa63-4e6a-49b9-88f8-480e6f4e834c",
-            "index": 2
-          }
-        },
-        {
-          "input": 1,
-          "output": {
-            "node": "7ef5aa63-4e6a-49b9-88f8-480e6f4e834c",
-            "index": 3
-          }
-        }
-      ],
-      "values": [
-        null,
-        null
-      ],
-      "id": "70492524-08fa-4b58-8780-a85abe64f684"
-    },
-    {
-      "type": "MaxNode",
-      "type_args": {},
-      "x": 162.0,
-      "y": 85.5,
-      "connections": [
-        {
-          "input": 0,
-          "output": {
-            "node": "6fb133b8-d07f-4282-95d3-1d2bfae1d727",
-            "index": 0
-          }
-        },
-        {
-          "input": 1,
-          "output": {
-            "node": "70492524-08fa-4b58-8780-a85abe64f684",
-            "index": 0
-          }
-        }
-      ],
-      "values": [
-        null,
-        null
-      ],
-      "id": "768dc269-d34b-4664-9d3a-ad535e60aa2c"
-    },
-    {
-      "type": "GrayScaleSourceNode",
-      "type_args": {
-        "n_frames": 4
+    "ca94d298-8f80-4194-ab50-f2725e8ed6e5": {
+      "node": {
+        "node_type": "MinNode",
+        "params": {},
+        "external_inputs": [
+          null,
+          null
+        ]
       },
-      "x": 100.5,
-      "y": 251.5,
-      "connections": [],
-      "values": [
-        "0"
-      ],
-      "id": "4e61a6c8-9448-4022-bc68-df1f08575635"
+      "x": 104.0,
+      "y": 33.0
     },
-    {
-      "type": "ABSDiffNode",
-      "type_args": {},
-      "x": 441.0,
-      "y": 4.5,
-      "connections": [
-        {
-          "input": 0,
-          "output": {
-            "node": "768dc269-d34b-4664-9d3a-ad535e60aa2c",
-            "index": 0
-          }
+    "17edc48f-ecc4-46f1-b550-3bd845e27546": {
+      "node": {
+        "node_type": "MinNode",
+        "params": {},
+        "external_inputs": [
+          null,
+          null
+        ]
+      },
+      "x": 105.0,
+      "y": 244.0
+    },
+    "b4ca0423-a087-4fee-b085-7d16741c1b49": {
+      "node": {
+        "node_type": "MaxNode",
+        "params": {},
+        "external_inputs": [
+          null,
+          null
+        ]
+      },
+      "x": 317.0,
+      "y": 102.0
+    },
+    "120c134e-53e0-4b22-9674-bbd60d736a71": {
+      "node": {
+        "node_type": "SourceNode",
+        "params": {
+          "n_frames": 1
         },
-        {
-          "input": 1,
-          "output": {
-            "node": "4e61a6c8-9448-4022-bc68-df1f08575635",
-            "index": 0
-          }
-        }
-      ],
-      "values": [
-        null,
-        null
-      ],
-      "id": "467f7dc2-eb0e-4ca4-a955-5f1e4a1ef272"
+        "external_inputs": [
+          15
+        ]
+      },
+      "x": 303.0,
+      "y": 291.0
     },
-    {
-      "type": "ABSDiffNode",
-      "type_args": {},
-      "x": 440.0,
-      "y": 125.5,
-      "connections": [
-        {
-          "input": 0,
-          "output": {
-            "node": "768dc269-d34b-4664-9d3a-ad535e60aa2c",
-            "index": 0
-          }
-        },
-        {
-          "input": 1,
-          "output": {
-            "node": "4e61a6c8-9448-4022-bc68-df1f08575635",
-            "index": 1
-          }
-        }
-      ],
-      "values": [
-        null,
-        null
-      ],
-      "id": "716e00ed-589a-4233-947d-311c100ce82d"
+    "4b9d8355-090f-4bad-994e-c74f6078023f": {
+      "node": {
+        "node_type": "ABSDiffNode",
+        "params": {},
+        "external_inputs": [
+          null,
+          null
+        ]
+      },
+      "x": 547.0,
+      "y": 128.0
     },
-    {
-      "type": "ABSDiffNode",
-      "type_args": {},
-      "x": 437.0,
-      "y": 247.5,
-      "connections": [
-        {
-          "input": 0,
-          "output": {
-            "node": "768dc269-d34b-4664-9d3a-ad535e60aa2c",
-            "index": 0
-          }
-        },
-        {
-          "input": 1,
-          "output": {
-            "node": "4e61a6c8-9448-4022-bc68-df1f08575635",
-            "index": 2
-          }
-        }
-      ],
-      "values": [
-        null,
-        null
-      ],
-      "id": "d42d06c6-9fc1-4305-b8be-25fcefaed08f"
-    },
-    {
-      "type": "ABSDiffNode",
-      "type_args": {},
-      "x": 435.0,
-      "y": 371.5,
-      "connections": [
-        {
-          "input": 0,
-          "output": {
-            "node": "768dc269-d34b-4664-9d3a-ad535e60aa2c",
-            "index": 0
-          }
-        },
-        {
-          "input": 1,
-          "output": {
-            "node": "4e61a6c8-9448-4022-bc68-df1f08575635",
-            "index": 3
-          }
-        }
-      ],
-      "values": [
-        null,
-        null
-      ],
-      "id": "8ab93cd2-39be-493c-980b-88df81a191f4"
-    },
-    {
-      "type": "ThresholdNode",
-      "type_args": {},
-      "x": 625.0,
-      "y": -12.5,
-      "connections": [
-        {
-          "input": 0,
-          "output": {
-            "node": "467f7dc2-eb0e-4ca4-a955-5f1e4a1ef272",
-            "index": 0
-          }
-        }
-      ],
-      "values": [
-        null,
-        "20.0",
-        "255.0",
-        "Binary"
-      ],
-      "id": "14f78ad2-6907-4817-ae03-39f9b8f197aa"
-    },
-    {
-      "type": "ThresholdNode",
-      "type_args": {},
-      "x": 855.0,
-      "y": -41.5,
-      "connections": [
-        {
-          "input": 0,
-          "output": {
-            "node": "716e00ed-589a-4233-947d-311c100ce82d",
-            "index": 0
-          }
-        },
-        {
-          "input": 1,
-          "output": {
-            "node": "14f78ad2-6907-4817-ae03-39f9b8f197aa",
-            "index": 0
-          }
-        }
-      ],
-      "values": [
-        null,
-        "20.0",
-        "255.0",
-        "Binary"
-      ],
-      "id": "caac1c67-7d85-4108-b51d-691bdfa56530"
-    },
-    {
-      "type": "ThresholdNode",
-      "type_args": {},
-      "x": 855.0,
-      "y": 129.5,
-      "connections": [
-        {
-          "input": 0,
-          "output": {
-            "node": "d42d06c6-9fc1-4305-b8be-25fcefaed08f",
-            "index": 0
-          }
-        },
-        {
-          "input": 1,
-          "output": {
-            "node": "14f78ad2-6907-4817-ae03-39f9b8f197aa",
-            "index": 0
-          }
-        }
-      ],
-      "values": [
-        null,
-        "20.0",
-        "255.0",
-        "Binary"
-      ],
-      "id": "043a9361-1815-4d05-8c5f-fa17825df91f"
-    },
-    {
-      "type": "ThresholdNode",
-      "type_args": {},
-      "x": 856.0,
-      "y": 296.5,
-      "connections": [
-        {
-          "input": 0,
-          "output": {
-            "node": "8ab93cd2-39be-493c-980b-88df81a191f4",
-            "index": 0
-          }
-        },
-        {
-          "input": 1,
-          "output": {
-            "node": "14f78ad2-6907-4817-ae03-39f9b8f197aa",
-            "index": 0
-          }
-        }
-      ],
-      "values": [
-        null,
-        "20.0",
-        "255.0",
-        "Binary"
-      ],
-      "id": "e8c4af34-7ad8-48ce-99f9-9e51b86dc9a9"
+    "4fbac5ca-0b5c-4435-a391-7c3fba5c8f1d": {
+      "node": {
+        "node_type": "ThresholdNode",
+        "params": {},
+        "external_inputs": [
+          null,
+          30.0,
+          null,
+          null
+        ]
+      },
+      "x": 767.0,
+      "y": 47.0
     }
-  ]
+  },
+  "connections": {
+    "ca94d298-8f80-4194-ab50-f2725e8ed6e5": [
+      [
+        0,
+        "eaeb1cc1-8737-4dcb-941b-1fff84f2ce8f",
+        0
+      ],
+      [
+        1,
+        "eaeb1cc1-8737-4dcb-941b-1fff84f2ce8f",
+        1
+      ]
+    ],
+    "17edc48f-ecc4-46f1-b550-3bd845e27546": [
+      [
+        0,
+        "eaeb1cc1-8737-4dcb-941b-1fff84f2ce8f",
+        2
+      ],
+      [
+        1,
+        "eaeb1cc1-8737-4dcb-941b-1fff84f2ce8f",
+        3
+      ]
+    ],
+    "b4ca0423-a087-4fee-b085-7d16741c1b49": [
+      [
+        0,
+        "ca94d298-8f80-4194-ab50-f2725e8ed6e5",
+        0
+      ],
+      [
+        1,
+        "17edc48f-ecc4-46f1-b550-3bd845e27546",
+        0
+      ]
+    ],
+    "4b9d8355-090f-4bad-994e-c74f6078023f": [
+      [
+        0,
+        "b4ca0423-a087-4fee-b085-7d16741c1b49",
+        0
+      ],
+      [
+        1,
+        "120c134e-53e0-4b22-9674-bbd60d736a71",
+        0
+      ]
+    ],
+    "4fbac5ca-0b5c-4435-a391-7c3fba5c8f1d": [
+      [
+        0,
+        "4b9d8355-090f-4bad-994e-c74f6078023f",
+        0
+      ]
+    ]
+  }
 }
