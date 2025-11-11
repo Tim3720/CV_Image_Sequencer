@@ -1,19 +1,20 @@
 {
   "nodes": {
-    "eaeb1cc1-8737-4dcb-941b-1fff84f2ce8f": {
+    "7df26249-646d-45de-8fd9-7dc365b60e16": {
       "node": {
         "node_type": "SourceNode",
         "params": {
-          "n_frames": 4
+          "n_frames": 4,
+          "grayscale_mode": true
         },
         "external_inputs": [
-          11
+          null
         ]
       },
-      "x": -146.0,
-      "y": 112.0
+      "x": -501.0,
+      "y": 126.0
     },
-    "ca94d298-8f80-4194-ab50-f2725e8ed6e5": {
+    "0a0be199-2aa5-4f85-8e3b-bd069f0f9787": {
       "node": {
         "node_type": "MinNode",
         "params": {},
@@ -22,10 +23,10 @@
           null
         ]
       },
-      "x": 104.0,
-      "y": 33.0
+      "x": -270.0,
+      "y": 44.0
     },
-    "17edc48f-ecc4-46f1-b550-3bd845e27546": {
+    "fd4650bb-1eab-4bb6-8743-134ea994c55c": {
       "node": {
         "node_type": "MinNode",
         "params": {},
@@ -34,10 +35,10 @@
           null
         ]
       },
-      "x": 105.0,
-      "y": 244.0
+      "x": -267.0,
+      "y": 238.0
     },
-    "b4ca0423-a087-4fee-b085-7d16741c1b49": {
+    "a7ebed66-2b36-411e-a294-446e35d5fd36": {
       "node": {
         "node_type": "MaxNode",
         "params": {},
@@ -46,23 +47,24 @@
           null
         ]
       },
-      "x": 317.0,
-      "y": 102.0
+      "x": -95.0,
+      "y": 44.0
     },
-    "120c134e-53e0-4b22-9674-bbd60d736a71": {
+    "e2ef3476-7836-4d06-9d4e-74a1df2f6110": {
       "node": {
         "node_type": "SourceNode",
         "params": {
-          "n_frames": 1
+          "n_frames": 1,
+          "grayscale_mode": true
         },
         "external_inputs": [
-          15
+          null
         ]
       },
-      "x": 303.0,
-      "y": 291.0
+      "x": 109.0,
+      "y": 263.0
     },
-    "4b9d8355-090f-4bad-994e-c74f6078023f": {
+    "5ee21a91-a68e-4354-9f88-348f6578d3d9": {
       "node": {
         "node_type": "ABSDiffNode",
         "params": {},
@@ -71,77 +73,77 @@
           null
         ]
       },
-      "x": 547.0,
-      "y": 128.0
+      "x": 299.0,
+      "y": 112.0
     },
-    "4fbac5ca-0b5c-4435-a391-7c3fba5c8f1d": {
+    "3b910734-c9a8-46ee-b332-02263b6aefba": {
       "node": {
         "node_type": "ThresholdNode",
         "params": {},
         "external_inputs": [
           null,
-          30.0,
           null,
-          null
+          null,
+          "Triangle"
         ]
       },
-      "x": 767.0,
-      "y": 47.0
+      "x": 524.0,
+      "y": 44.0
     }
   },
   "connections": {
-    "ca94d298-8f80-4194-ab50-f2725e8ed6e5": [
+    "0a0be199-2aa5-4f85-8e3b-bd069f0f9787": [
       [
         0,
-        "eaeb1cc1-8737-4dcb-941b-1fff84f2ce8f",
+        "7df26249-646d-45de-8fd9-7dc365b60e16",
         0
       ],
       [
         1,
-        "eaeb1cc1-8737-4dcb-941b-1fff84f2ce8f",
+        "7df26249-646d-45de-8fd9-7dc365b60e16",
         1
       ]
     ],
-    "17edc48f-ecc4-46f1-b550-3bd845e27546": [
+    "fd4650bb-1eab-4bb6-8743-134ea994c55c": [
       [
         0,
-        "eaeb1cc1-8737-4dcb-941b-1fff84f2ce8f",
+        "7df26249-646d-45de-8fd9-7dc365b60e16",
         2
       ],
       [
         1,
-        "eaeb1cc1-8737-4dcb-941b-1fff84f2ce8f",
+        "7df26249-646d-45de-8fd9-7dc365b60e16",
         3
       ]
     ],
-    "b4ca0423-a087-4fee-b085-7d16741c1b49": [
+    "a7ebed66-2b36-411e-a294-446e35d5fd36": [
       [
         0,
-        "ca94d298-8f80-4194-ab50-f2725e8ed6e5",
+        "0a0be199-2aa5-4f85-8e3b-bd069f0f9787",
         0
       ],
       [
         1,
-        "17edc48f-ecc4-46f1-b550-3bd845e27546",
+        "fd4650bb-1eab-4bb6-8743-134ea994c55c",
         0
       ]
     ],
-    "4b9d8355-090f-4bad-994e-c74f6078023f": [
+    "5ee21a91-a68e-4354-9f88-348f6578d3d9": [
       [
         0,
-        "b4ca0423-a087-4fee-b085-7d16741c1b49",
+        "a7ebed66-2b36-411e-a294-446e35d5fd36",
         0
       ],
       [
         1,
-        "120c134e-53e0-4b22-9674-bbd60d736a71",
+        "e2ef3476-7836-4d06-9d4e-74a1df2f6110",
         0
       ]
     ],
-    "4fbac5ca-0b5c-4435-a391-7c3fba5c8f1d": [
+    "3b910734-c9a8-46ee-b332-02263b6aefba": [
       [
         0,
-        "4b9d8355-090f-4bad-994e-c74f6078023f",
+        "5ee21a91-a68e-4354-9f88-348f6578d3d9",
         0
       ]
     ]

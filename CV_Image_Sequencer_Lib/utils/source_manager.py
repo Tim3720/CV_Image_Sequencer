@@ -26,6 +26,9 @@ class SourceManager(QObject):
         self.n_frames: int = 0
         self.loop_mode: bool = True
 
+    def get_number_of_frames(self):
+        return self.n_frames
+
     def get_frame(self, offset: int = 1, grayscale: bool = False):
         new_index = self.current_frame_idx + offset
         if new_index < 0:
@@ -77,7 +80,8 @@ class SourceManager(QObject):
                 self.video_capture.set(cv.CAP_PROP_POS_FRAMES, index)
                 ret, frame = self.video_capture.read()
                 if not ret:
-                    return self.stop()
+                    self.stop()
+                    return
                 if grayscale:
                     frame = GrayScaleImage(value=cv.cvtColor(frame, cv.COLOR_BGR2GRAY))
                 else:
@@ -111,6 +115,8 @@ class SourceManager(QObject):
 
     def start(self, interval=30):
         if self.video_capture and self.video_capture.isOpened():
+            self.timer.start(interval)
+        elif not self.image_directory is None:
             self.timer.start(interval)
 
     def load_video(self, path: str):

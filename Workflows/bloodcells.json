@@ -1,0 +1,109 @@
+{
+  "nodes": {
+    "6d92765a-d462-408b-a18b-c5833217c1f0": {
+      "node": {
+        "node_type": "SourceNode",
+        "params": {
+          "n_frames": 1,
+          "grayscale_mode": false
+        },
+        "external_inputs": [
+          null
+        ]
+      },
+      "x": -503.0,
+      "y": 159.0
+    },
+    "6a2b175b-5e68-4747-acf9-64325d9d9317": {
+      "node": {
+        "node_type": "SplitChannelNode",
+        "params": {},
+        "external_inputs": [
+          null
+        ]
+      },
+      "x": -312.0,
+      "y": 102.0
+    },
+    "c41ac692-ddfa-415c-8a0c-012d51630861": {
+      "node": {
+        "node_type": "ClampedDiffNode",
+        "params": {},
+        "external_inputs": [
+          null,
+          null,
+          null
+        ]
+      },
+      "x": 238.0,
+      "y": 21.0
+    },
+    "8e0cf0b3-c774-483c-b5e7-d046303de219": {
+      "node": {
+        "node_type": "ThresholdNode",
+        "params": {},
+        "external_inputs": [
+          null,
+          null,
+          null,
+          "Otsu"
+        ]
+      },
+      "x": 421.0,
+      "y": 2.0
+    },
+    "9fc387b0-34b4-4d11-bf64-d0b0a619e6ef": {
+      "node": {
+        "node_type": "ClampedDiffNode",
+        "params": {},
+        "external_inputs": [
+          null,
+          null,
+          null
+        ]
+      },
+      "x": 34.0,
+      "y": 234.0
+    }
+  },
+  "connections": {
+    "6a2b175b-5e68-4747-acf9-64325d9d9317": [
+      [
+        0,
+        "6d92765a-d462-408b-a18b-c5833217c1f0",
+        0
+      ]
+    ],
+    "c41ac692-ddfa-415c-8a0c-012d51630861": [
+      [
+        0,
+        "6a2b175b-5e68-4747-acf9-64325d9d9317",
+        0
+      ],
+      [
+        1,
+        "6a2b175b-5e68-4747-acf9-64325d9d9317",
+        2
+      ]
+    ],
+    "8e0cf0b3-c774-483c-b5e7-d046303de219": [
+      [
+        0,
+        "c41ac692-ddfa-415c-8a0c-012d51630861",
+        0
+      ]
+    ],
+    "9fc387b0-34b4-4d11-bf64-d0b0a619e6ef": [
+      [
+        0,
+        "6a2b175b-5e68-4747-acf9-64325d9d9317",
+        2
+      ],
+      [
+        1,
+        "6a2b175b-5e68-4747-acf9-64325d9d9317",
+        0
+      ]
+    ]
+  }
+}

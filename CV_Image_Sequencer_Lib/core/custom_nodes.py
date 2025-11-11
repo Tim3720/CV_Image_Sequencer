@@ -4,8 +4,8 @@ import numpy as np
 import cv2 as cv
 import os
 
-from .types import Float, GrayScaleImage, Int, ThresholdType
-
+from ..utils.source_manager import SourceManager
+from .types import ColorImage, Float, GrayScaleImage, Int, ThresholdType
 from .nodes import Node, Graph
 
 class IDXNode(Node):
@@ -20,32 +20,42 @@ class IDXNode(Node):
 
 
 class SourceNode(Node):
-    def __init__(self, graph: Graph, n_frames: int = 1):
-        super().__init__(graph, [("Offset", Int)], [("Image", GrayScaleImage) for _ in
-                                                 range(n_frames)])
-        self.n_frames = n_frames
+    def __init__(self, graph: Graph, source_manager: SourceManager, n_frames: int = 1,
+                 grayscale_mode: bool = False):
 
-        self.path = "/home/tim/Documents/Arbeit/HDF5Test/SO298_298-10-1_PISCO2_20230422-2334_Results/Images/"
-        self.files = list(os.listdir(self.path))
+        if grayscale_mode:
+            super().__init__(graph, [("Offset", Int)], [*[("Image", GrayScaleImage) for _ in
+                                                 range(n_frames)]])
+        else:
+            super().__init__(graph, [("Offset", Int)], [*[("Image", ColorImage) for _ in
+                                                 range(n_frames)]])
+
+        self.n_frames = n_frames
+        self.grayscale_mode = grayscale_mode
+        self.source_manager = source_manager
+
         self.name = "SourceNode"
 
         self.min_values = [Int(value=0)]
-        self.max_values = [Int(value=len(self.files) - 1)]
-        self.default_values = [Int(value=1)]
+        self.max_values = [Int(value=self.source_manager.get_number_of_frames())]
+        self.default_values = [Int(value=0)]
 
     @override
     def compute_function(self, inputs):
-        if inputs[0] is None:
-            start_idx = random.randint(0, len(self.files))
-        else:
-            start_idx = inputs[0].value
-        files = [self.files[i % len(self.files)] for i in range(start_idx, start_idx + self.n_frames)]
-        return [GrayScaleImage(value=cv.imread(os.path.join(self.path, file), cv.IMREAD_GRAYSCALE)) for file in files]
+        offset = inputs[0].value
+        frames = self.source_manager.get_next_n_frames(self.n_frames, offset, self.grayscale_mode)
+        if frames is None:
+            if self.grayscale_mode:
+                frames = [GrayScaleImage(None) for _ in range(self.n_frames)]
+            else:
+                frames = [ColorImage(None) for _ in range(self.n_frames)]
+        # frames.append(offset)
+        return frames
 
     @override
     def to_dict(self):
         d = super().to_dict()
-        d["params"] = {"n_frames": self.n_frames}
+        d["params"] = {"n_frames": self.n_frames, "grayscale_mode": self.grayscale_mode}
         return d
 
 
@@ -149,9 +159,15 @@ class MaxNode(Node):
 
 class ClampedDiffNode(Node):
     def __init__(self, graph: Graph):
-        super().__init__(graph, [("Image 1", GrayScaleImage), ("Image 2", GrayScaleImage),
-                                 ("Cutoff", Int)],
-                         [("Result Image", GrayScaleImage)])
+        super().__init__(graph,
+                         parameter_template=[
+                             ("Image 1", GrayScaleImage),
+                             ("Image 2", GrayScaleImage),
+                             ("Cutoff", Int)
+                         ],
+                         result_template=[
+                             ("Result Image", GrayScaleImage)
+                         ])
 
         self.min_values[2] = Int(0)
         self.max_values[2] = Int(255)
@@ -171,6 +187,29 @@ class ClampedDiffNode(Node):
         res[res < inputs[2].value] = 0
         res = res.astype(np.uint8)
         return [GrayScaleImage(value=res)]
+
+
+class SplitChannelNode(Node):
+    def __init__(self, graph: Graph):
+        super().__init__(graph, [("Image", ColorImage)],
+                         [("Channel 1", GrayScaleImage), ("Channel 2", GrayScaleImage),
+                          ("Channel 3", GrayScaleImage)])
+        self.name = "SplitChannelsNode"
+
+    @override
+    def compute_function(self, inputs: list):
+        if inputs[0] is None:
+            return [GrayScaleImage(value=None), GrayScaleImage(value=None), GrayScaleImage(value=None)]
+        img1 = inputs[0].value
+        if img1 is None:
+            return [GrayScaleImage(value=None), GrayScaleImage(value=None), GrayScaleImage(value=None)]
+
+        ch1, ch2, ch3 = cv.split(img1)
+        return [GrayScaleImage(value=ch1), GrayScaleImage(ch2), GrayScaleImage(ch3)]
+
+
+
+
 
 # class BlackBoxOuterNode(Node):
 #     def __init__(self, graph: Graph, parameter_template: list[type], result_template: list[type]):

@@ -1,14 +1,17 @@
 from typing import Optional
-from PySide6.QtCore import QPoint, QPointF, Signal, Slot
-from PySide6.QtGui import QMouseEvent, QPainter, Qt
+from PySide6.QtCore import QPointF, Signal, Slot
+from PySide6.QtGui import QPainter, Qt
 from PySide6.QtWidgets import QGraphicsScene, QGraphicsSceneMouseEvent, QGraphicsView, QVBoxLayout, QWidget
 
 from uuid import uuid4
 
-from CV_Image_Sequencer_Lib.core.nodes import Node, Graph
-from CV_Image_Sequencer_Lib.core.types import IOType
+
+from ...utils.source_manager import SourceManager
+from ...core.custom_nodes import SourceNode
+from ...core.nodes import Node, Graph
+from ...core.types import IOType
 from .add_node_menu import AddNodeMenu
-from CV_Image_Sequencer_Lib.ui.workflow_tab.socket_vis import SocketVis
+from .socket_vis import SocketVis
 from .node_vis import NodeVis
 from .connection_vis import ConnectionVis
 
@@ -34,9 +37,10 @@ class GraphVis(QWidget):
     new_inputs = Signal(object)
     new_node_viewing = Signal()
 
-    def __init__(self):
+    def __init__(self, source_manager: SourceManager):
         super().__init__()
         self.graph = Graph()
+        self.source_manager = source_manager
 
         self.node_visualizations: dict[Node, NodeVis] = {}  # node_uuid: NodeVis
         self.connections: dict[tuple[Node, int, Node, int], ConnectionVis] = {} 
@@ -62,7 +66,11 @@ class GraphVis(QWidget):
 
 
     def add_node(self, node_type: type[Node], add_to_graph: bool = True, x: float = 0, y: float = 0, **node_kwargs) -> Node:
-        node = node_type(self.graph, **node_kwargs)
+        if node_type == SourceNode:
+            node = SourceNode(self.graph, self.source_manager, **node_kwargs)
+            self.source_manager.frame_ready.connect(lambda _: node.on_new_data())
+        else:
+            node = node_type(self.graph, **node_kwargs)
         node_vis = NodeVis(node)
         self.node_visualizations[node] = node_vis
         node_vis.delete.connect(self.delete_node)
@@ -105,9 +113,14 @@ class GraphVis(QWidget):
         for socket_vis in sender.output_sockets:
             socket_vis.clicked.disconnect(self.make_temp_connection)
 
+        if sender == self.node_vis_watching:
+            self.node_vis_watching = None
+            self.new_node_viewing.emit()
+
         self.graph.remove_node(sender.node)
         self.node_visualizations.pop(sender.node)
         self.scene.removeItem(sender)
+        sender.deleteLater()
 
     @Slot()
     def make_temp_connection(self):

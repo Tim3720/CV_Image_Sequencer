@@ -93,8 +93,6 @@ class Graph(QObject):
         # TODO: check for types etc.
         self.connections[param_node][param_idx] = (result_node, result_idx)
         result_node.new_params.connect(param_node.on_new_data)
-        result_node.compute()
-        result_node.new_params.emit()
 
     def disconnect_nodes(self, param_node: Node, param_idx: int):
         if not param_node in self.connections:

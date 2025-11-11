@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QMenu,
 )
 
-from ...core.custom_nodes import (MaxNode, MinNode, SourceNode, ABSDiffNode,
+from ...core.custom_nodes import (MaxNode, MinNode, SourceNode, ABSDiffNode, SplitChannelNode,
                                   ThresholdNode, InvertNode, ClampedDiffNode)
 
 
@@ -30,9 +30,9 @@ class AddNodeMenu(QMenu):
         # action = QAction("Invert", self)
         # self._actions[action] = Invert3CNode
         # menu_3C.addAction(action)
-        # action = QAction("Split channels", self)
-        # self._actions[action] = ChannelSplitNode
-        # menu_3C.addAction(action)
+        action = QAction("Split channels", self)
+        self._actions[action] = SplitChannelNode
+        menu_3C.addAction(action)
 
 
         ################################################
@@ -71,6 +71,7 @@ class AddNodeMenu(QMenu):
                                             , False, Qt.WindowType.WindowStaysOnTopHint)
             if ok:
                 value, ok = QInputDialog.getInt(None, "Set number of frames", "Number of frames:", 1, 1, 10, 1)
+                params["grayscale_mode"] = color == "Gray"
                 if ok:
                     params["n_frames"] = value
                 # if color == "Color":

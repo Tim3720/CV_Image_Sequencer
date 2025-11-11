@@ -23,8 +23,7 @@ class WorkflowTabWidget(QWidget):
         super().__init__(parent)
 
         self.source_manager = source_manager
-
-        self.graph_vis = GraphVis()
+        self.graph_vis = GraphVis(self.source_manager)
 
         self.init_ui()
         # self.test()
@@ -106,7 +105,10 @@ class WorkflowTabWidget(QWidget):
         if not images:
             return
 
-        border = np.ones((images[0].shape[0], 10), dtype=np.uint8) * 150
+        if color:
+            border = np.ones((images[0].shape[0], 10, 3), dtype=np.uint8) * 150
+        else:
+            border = np.ones((images[0].shape[0], 20), dtype=np.uint8) * 150
         frames = []
         for img in images:
             frames.append(img)
@@ -186,7 +188,6 @@ class WorkflowTabWidget(QWidget):
         for node_vis in list(self.graph_vis.node_visualizations.values()):
             node_vis.setSelected(False)
 
-
         uuid_to_nodes: dict[str, Node] = {}
         for uuid, node_vis_info in nodes.items():
             node_info = node_vis_info["node"]
@@ -210,10 +211,12 @@ class WorkflowTabWidget(QWidget):
             node.new_inputs.emit(node.external_inputs)
             self.graph_vis.node_visualizations[node].setSelected(True)
 
+
         for param_uuid, connection_data in connections.items():
             for (param_idx, result_uuid, result_idx) in connection_data:
                 self.graph_vis.add_connection(uuid_to_nodes[param_uuid], param_idx,
                                               uuid_to_nodes[result_uuid], result_idx)
+
 
 
 
