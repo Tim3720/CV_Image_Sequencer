@@ -89,6 +89,16 @@ class ThresholdType(Option):
         "Otsu": cv.THRESH_OTSU,
     }
 
+
+@dataclass
+class MorphologyTypes(Option):
+    value: str
+    options: ClassVar[dict[str, Any]] = {
+        "Close": cv.MORPH_CLOSE,
+        "Open": cv.MORPH_OPEN,
+    }
+
+
 @dataclass
 class Scalar(IOType):
     value: Any

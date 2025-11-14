@@ -17,7 +17,7 @@ class CVImageSequencerWidget(QWidget):
         app.aboutToQuit.connect(self.on_quit)
 
         self.init_ui()
-        self.source_manager.load_directory("/home/tim/Documents/Arbeit/HDF5Test/SO298_298-10-1_PISCO2_20230422-2334_Results/Images/")
+        self.source_manager.load_directory("/home/tim/Documents/Arbeit/TestData/HighSampling/")
 
     def init_ui(self):
         self.main_layout = QHBoxLayout(self)
@@ -26,11 +26,10 @@ class CVImageSequencerWidget(QWidget):
 
         self.main_layout.addWidget(self.tab_widget, 4)
 
-        # self.tab_widget.load()
+        self.tab_widget.load()
 
     def on_quit(self):
-        # self.tab_widget.save()
-        ...
+        self.tab_widget.save()
 
 
     def reload_widget(self):

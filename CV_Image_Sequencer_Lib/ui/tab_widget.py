@@ -110,7 +110,7 @@ class TabWidget(QTabWidget):
         state = {}
         state["Workflows"] = {}
         for i, tab in enumerate(self.workflow_tabs):
-            state["Workflows"][f"Workflow {i}"] = tab.save_state()
+            state["Workflows"][f"Workflow {i}"] = tab.get_state()
 
         with open(".state.json", "w") as f:
             json.dump(state, f, indent=2)

@@ -1,5 +1,215 @@
 {
   "Workflows": {
-    "Workflow 0": {}
+    "Workflow 0": {
+      "nodes": {
+        "68af712b-398e-4e72-bd8b-99b1b1b800eb": {
+          "node": {
+            "node_type": "SourceNode",
+            "params": {
+              "n_frames": 1,
+              "grayscale_mode": true
+            },
+            "external_inputs": [
+              0
+            ]
+          },
+          "x": -511.0,
+          "y": 276.0
+        },
+        "e456d13f-7247-4b4d-ae39-a73813ed76c5": {
+          "node": {
+            "node_type": "ThresholdNode",
+            "params": {},
+            "external_inputs": [
+              null,
+              40.0,
+              null,
+              "Triangle"
+            ]
+          },
+          "x": -340.0,
+          "y": 21.0
+        },
+        "65de4570-8474-4172-82a9-e8df31d74095": {
+          "node": {
+            "node_type": "PixelwiseAnd",
+            "params": {},
+            "external_inputs": [
+              null,
+              null
+            ]
+          },
+          "x": 71.0,
+          "y": 42.0
+        },
+        "620729b7-f54d-4c8c-a30d-d159aa87d2e0": {
+          "node": {
+            "node_type": "InvertNode",
+            "params": {},
+            "external_inputs": [
+              null
+            ]
+          },
+          "x": 258.0,
+          "y": 109.0
+        },
+        "e9564211-0410-4395-a3a1-920bd5705c90": {
+          "node": {
+            "node_type": "InvertNode",
+            "params": {},
+            "external_inputs": [
+              null
+            ]
+          },
+          "x": 54.0,
+          "y": 280.0
+        },
+        "f44e1785-0c56-4331-b57e-672d3e395c16": {
+          "node": {
+            "node_type": "ABSDiffNode",
+            "params": {},
+            "external_inputs": [
+              null,
+              null
+            ]
+          },
+          "x": 441.0,
+          "y": 171.0
+        },
+        "f9b3dc7f-d22d-4293-875e-616916c48991": {
+          "node": {
+            "node_type": "ErodeNode",
+            "params": {},
+            "external_inputs": [
+              null,
+              11,
+              5
+            ]
+          },
+          "x": -134.0,
+          "y": 51.0
+        },
+        "7817e552-6356-474c-9507-d50f8087d5c8": {
+          "node": {
+            "node_type": "ThresholdNode",
+            "params": {},
+            "external_inputs": [
+              null,
+              40.0,
+              null,
+              null
+            ]
+          },
+          "x": 634.0,
+          "y": 3.0
+        },
+        "fed79a52-77d8-4c72-b774-1f9d026a91bc": {
+          "node": {
+            "node_type": "ThresholdNode",
+            "params": {},
+            "external_inputs": [
+              null,
+              50.0,
+              null,
+              null
+            ]
+          },
+          "x": 646.0,
+          "y": 278.0
+        },
+        "5d448184-54fb-4d52-8442-3a82e1846dfc": {
+          "node": {
+            "node_type": "ABSDiffNode",
+            "params": {},
+            "external_inputs": [
+              null,
+              null
+            ]
+          },
+          "x": 879.0,
+          "y": 107.0
+        }
+      },
+      "connections": {
+        "e456d13f-7247-4b4d-ae39-a73813ed76c5": [
+          [
+            0,
+            "68af712b-398e-4e72-bd8b-99b1b1b800eb",
+            0
+          ]
+        ],
+        "65de4570-8474-4172-82a9-e8df31d74095": [
+          [
+            0,
+            "f9b3dc7f-d22d-4293-875e-616916c48991",
+            0
+          ],
+          [
+            1,
+            "68af712b-398e-4e72-bd8b-99b1b1b800eb",
+            0
+          ]
+        ],
+        "620729b7-f54d-4c8c-a30d-d159aa87d2e0": [
+          [
+            0,
+            "65de4570-8474-4172-82a9-e8df31d74095",
+            0
+          ]
+        ],
+        "e9564211-0410-4395-a3a1-920bd5705c90": [
+          [
+            0,
+            "f9b3dc7f-d22d-4293-875e-616916c48991",
+            0
+          ]
+        ],
+        "f44e1785-0c56-4331-b57e-672d3e395c16": [
+          [
+            0,
+            "620729b7-f54d-4c8c-a30d-d159aa87d2e0",
+            0
+          ],
+          [
+            1,
+            "e9564211-0410-4395-a3a1-920bd5705c90",
+            0
+          ]
+        ],
+        "f9b3dc7f-d22d-4293-875e-616916c48991": [
+          [
+            0,
+            "e456d13f-7247-4b4d-ae39-a73813ed76c5",
+            0
+          ]
+        ],
+        "7817e552-6356-474c-9507-d50f8087d5c8": [
+          [
+            0,
+            "f44e1785-0c56-4331-b57e-672d3e395c16",
+            0
+          ]
+        ],
+        "fed79a52-77d8-4c72-b774-1f9d026a91bc": [
+          [
+            0,
+            "f44e1785-0c56-4331-b57e-672d3e395c16",
+            0
+          ]
+        ],
+        "5d448184-54fb-4d52-8442-3a82e1846dfc": [
+          [
+            0,
+            "7817e552-6356-474c-9507-d50f8087d5c8",
+            0
+          ],
+          [
+            1,
+            "fed79a52-77d8-4c72-b774-1f9d026a91bc",
+            0
+          ]
+        ]
+      }
+    }
   }
 }

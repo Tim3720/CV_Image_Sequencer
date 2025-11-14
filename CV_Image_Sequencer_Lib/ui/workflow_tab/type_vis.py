@@ -161,6 +161,8 @@ class IntVis(QWidget):
     def on_new_input(self, data: Optional[Int]):
         if data is None:
             return
+        if self.input.hasFocus():
+            return
         self.input.setText(str(data.value))
 
     @Slot()

@@ -164,11 +164,15 @@ class WorkflowTabWidget(QWidget):
         self.input_frame_label.setPixmap(QPixmap())
         self.output_frame_label.setPixmap(QPixmap())
 
+
+    def get_state(self):
+        return self.graph_vis.to_dict()
+
     def save_workflow(self):
         file, _ = QFileDialog.getSaveFileName(None, "Workflow file", "/home/tim/Documents/OtherProjects/CV_Image_Sequencer/Workflows/", "*.json")
         if not file.endswith(".json"):
             file += ".json"
-        state = self.graph_vis.to_dict()
+        state = self.get_state()
         with open(file, "w") as f:
             json.dump(state, f, indent=2)
 
@@ -177,7 +181,6 @@ class WorkflowTabWidget(QWidget):
         file, _ = QFileDialog.getOpenFileName(None, "Workflow file", "/home/tim/Documents/OtherProjects/CV_Image_Sequencer/Workflows/", "*.json")
         with open(file, "r") as f:
             state = json.load(f)
-
         self.load_state(state)
 
     def load_state(self, state: dict):

@@ -2,10 +2,9 @@ from typing import Any, Optional, override
 import random
 import numpy as np
 import cv2 as cv
-import os
 
 from ..utils.source_manager import SourceManager
-from .types import ColorImage, Float, GrayScaleImage, Int, ThresholdType
+from .types import ColorImage, Float, GrayScaleImage, Int, MorphologyTypes, ThresholdType
 from .nodes import Node, Graph
 
 class IDXNode(Node):
@@ -206,6 +205,145 @@ class SplitChannelNode(Node):
 
         ch1, ch2, ch3 = cv.split(img1)
         return [GrayScaleImage(value=ch1), GrayScaleImage(ch2), GrayScaleImage(ch3)]
+
+
+class RegionOfInterestNode(Node):
+    def __init__(self, graph: Graph):
+        super().__init__(graph, [("Image", GrayScaleImage), ("x", Int), ("y", Int),
+                                 ("width", Int), ("height", Int)],
+                         [("Result Image", GrayScaleImage)])
+        self.name = "RegionOfInterestNode"
+
+        self.default_values[1] = Int(0)
+        self.default_values[2] = Int(0)
+        self.default_values[3] = Int(-1)
+        self.default_values[4] = Int(-1)
+
+    @override
+    def compute_function(self, inputs: list):
+        if inputs[0] is None:
+            return [GrayScaleImage(value=None)]
+        img = inputs[0].value
+        if img is None:
+            return [GrayScaleImage(value=None)]
+
+        x = inputs[1].value
+        y = inputs[2].value
+        width = inputs[3].value
+        height = inputs[4].value 
+
+        if width <= 0:
+            width = img.shape[1] - x
+        if height <= 0:
+            height = img.shape[0] - y
+
+        res = img[y:y+height, x:x+width]
+        return [GrayScaleImage(value=res)]
+
+
+class ErodeNode(Node):
+    def __init__(self, graph: Graph):
+        super().__init__(graph, [("Image", GrayScaleImage), ("kernelSize", Int),
+                                 ("iterations", Int)],
+                         [("Result Image", GrayScaleImage)])
+        self.name = "ErodeNode"
+
+        self.min_values[1] = Int(0)
+        self.min_values[2] = Int(0)
+
+        self.default_values[1] = Int(3)
+        self.default_values[2] = Int(1)
+
+    @override
+    def compute_function(self, inputs: list):
+        if inputs[0] is None:
+            return [GrayScaleImage(value=None)]
+        img = inputs[0].value
+        if img is None:
+            return [GrayScaleImage(value=None)]
+
+        kernel = np.ones((inputs[1].value, inputs[1].value))
+        res = cv.erode(img, kernel, iterations=inputs[2].value)
+        return [GrayScaleImage(value=res)]
+
+class DilateNode(Node):
+    def __init__(self, graph: Graph):
+        super().__init__(graph, [("Image", GrayScaleImage), ("kernelSize", Int),
+                                 ("iterations", Int)],
+                         [("Result Image", GrayScaleImage)])
+        self.name = "DilateNode"
+
+        self.min_values[1] = Int(0)
+        self.min_values[2] = Int(0)
+
+        self.default_values[1] = Int(3)
+        self.default_values[2] = Int(1)
+
+    @override
+    def compute_function(self, inputs: list):
+        if inputs[0] is None:
+            return [GrayScaleImage(value=None)]
+        img = inputs[0].value
+        if img is None:
+            return [GrayScaleImage(value=None)]
+
+        kernel = np.ones((inputs[1].value, inputs[1].value))
+        res = cv.dilate(img, kernel, iterations=inputs[2].value)
+        return [GrayScaleImage(value=res)]
+
+
+class PixelwiseAnd(Node):
+    def __init__(self, graph: Graph):
+        super().__init__(graph,
+                         parameter_template=[
+                             ("Image 1", GrayScaleImage),
+                             ("Image 2", GrayScaleImage),
+                         ],
+                         result_template=[
+                             ("Result Image", GrayScaleImage)
+                         ])
+
+        self.name = "PixelwiseAnd"
+
+    @override
+    def compute_function(self, inputs: list):
+        if inputs[0] is None or inputs[1] is None:
+            return [GrayScaleImage(value=None)]
+        img1 = inputs[0].value
+        img2 = inputs[1].value
+        if img1 is None or img2 is None:
+            return [GrayScaleImage(value=None)]
+        res = cv.bitwise_and(img1, img2)
+        return [GrayScaleImage(value=res)]
+
+class MorphologyOperationNode(Node):
+    def __init__(self, graph: Graph):
+        super().__init__(graph, [("Image", GrayScaleImage), ("operation", MorphologyTypes), ("kernelSize", Int),
+                                 ("iterations", Int)],
+                         [("Result Image", GrayScaleImage)])
+        self.name = "MorphologyOperationNode"
+
+        self.min_values[2] = Int(0)
+        self.min_values[3] = Int(0)
+
+        self.default_values[2] = Int(3)
+        self.default_values[3] = Int(1)
+        self.default_values[1] = MorphologyTypes("Close")
+
+    @override
+    def compute_function(self, inputs: list):
+        if inputs[0] is None:
+            return [GrayScaleImage(value=None)]
+        img = inputs[0].value
+        if img is None:
+            return [GrayScaleImage(value=None)]
+
+        kernel = np.ones((inputs[2].value, inputs[2].value))
+        res = cv.morphologyEx(img, MorphologyTypes.options[inputs[1].value], kernel, iterations=inputs[3].value)
+        return [GrayScaleImage(value=res)]
+
+
+
 
 
 

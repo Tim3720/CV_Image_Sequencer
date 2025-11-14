@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QMenu,
 )
 
-from ...core.custom_nodes import (MaxNode, MinNode, SourceNode, ABSDiffNode, SplitChannelNode,
+from ...core.custom_nodes import (DilateNode, ErodeNode, MaxNode, MinNode, MorphologyOperationNode, PixelwiseAnd, RegionOfInterestNode, SourceNode, ABSDiffNode, SplitChannelNode,
                                   ThresholdNode, InvertNode, ClampedDiffNode)
 
 
@@ -39,6 +39,32 @@ class AddNodeMenu(QMenu):
         ## One channel image nodes
         ################################################
         menu_1C = self.addMenu("1 channel operations") 
+
+        menu_morph = menu_1C.addMenu("Morphology operations") 
+        action = QAction("MorphologyOperation", self)
+        self._actions[action] = MorphologyOperationNode
+        menu_morph.addAction(action)
+        action = QAction("Dilate", self)
+        self._actions[action] = DilateNode
+        menu_morph.addAction(action)
+        action = QAction("Erode", self)
+        self._actions[action] = ErodeNode
+        menu_morph.addAction(action)
+
+        menu_pxwise = menu_1C.addMenu("Pixelwise operations") 
+        action = QAction("Pixelwise Min", self)
+        self._actions[action] = MinNode
+        menu_pxwise.addAction(action)
+        action = QAction("Pixelwise Max", self)
+        self._actions[action] = MaxNode
+        menu_pxwise.addAction(action)
+        action = QAction("Invert", self)
+        self._actions[action] = InvertNode
+        menu_pxwise.addAction(action)
+        action = QAction("PixelwiseAnd", self)
+        self._actions[action] = PixelwiseAnd
+        menu_pxwise.addAction(action)
+
         action = QAction("Threshold", self)
         self._actions[action] = ThresholdNode
         menu_1C.addAction(action)
@@ -48,14 +74,8 @@ class AddNodeMenu(QMenu):
         action = QAction("Clamped Diff", self)
         self._actions[action] = ClampedDiffNode
         menu_1C.addAction(action)
-        action = QAction("Pixelwise Min", self)
-        self._actions[action] = MinNode
-        menu_1C.addAction(action)
-        action = QAction("Pixelwise Max", self)
-        self._actions[action] = MaxNode
-        menu_1C.addAction(action)
-        action = QAction("Invert", self)
-        self._actions[action] = InvertNode
+        action = QAction("ROI", self)
+        self._actions[action] = RegionOfInterestNode
         menu_1C.addAction(action)
 
 
