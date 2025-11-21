@@ -121,12 +121,9 @@ class SourcePlayerTab(QWidget):
             return
 
         if mode == "Video":
-            file_paths = QFileDialog.getOpenFileName(caption="Select Video File",
-                                                 dir="/home/tim/Documents/Arbeit/BloodCellsProject/Data",
-                                                 filter="Video Files (*.mp4 *.avi *.mov);;All Files (*)")
+            file_paths = QFileDialog.getOpenFileName(caption="Select Video File", filter="Video Files (*.mp4 *.avi *.mov);;All Files (*)")
             if file_paths:
                 self.source_manager.load_video(file_paths[0])
         else:
-            path = QFileDialog.getExistingDirectory(None, "Select Image Directory",
-                                                    dir="/home/tim/Documents/Arbeit/HDF5Test/SO298_298-10-1_PISCO2_20230422-2334_Results/")
+            path = QFileDialog.getExistingDirectory(None, "Select Image Directory")
             self.source_manager.load_directory(path)
