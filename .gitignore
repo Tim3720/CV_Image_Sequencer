@@ -2,3 +2,26 @@
 /flake.lock
 __pycache__/
 **/__pycache__/
+
+# Model files (too large for Git)
+*.safetensors
+*.pth
+*.bin
+model/
+CV_Image_Sequencer_Lib/core/models/
+
+# Data directories
+contour_crops/
+*.csv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# But keep directory structure with a placeholder
+!.gitkeep

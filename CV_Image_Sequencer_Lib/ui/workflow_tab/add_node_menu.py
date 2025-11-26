@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
 )
 
 from ...core.custom_nodes import (DilateNode, ErodeNode, MaxNode, MinNode, MorphologyOperationNode, PixelwiseAnd, RegionOfInterestNode, SourceNode, ABSDiffNode, SplitChannelNode,
-                                  ThresholdNode, InvertNode, ClampedDiffNode)
+                                  ThresholdNode, InvertNode, ClampedDiffNode, FindContoursNode, SaveContourCropsNode, ClassificationNode, DeconvolutionNode)  # Add ClassificationNode
 
 
 class AddNodeMenu(QMenu):
@@ -76,6 +76,18 @@ class AddNodeMenu(QMenu):
         menu_1C.addAction(action)
         action = QAction("ROI", self)
         self._actions[action] = RegionOfInterestNode
+        menu_1C.addAction(action)
+        action = QAction("Find Contours", self)
+        self._actions[action] = FindContoursNode
+        menu_1C.addAction(action)
+        action = QAction("Save Contour Crops", self)  # Add this
+        self._actions[action] = SaveContourCropsNode  # Add this
+        menu_1C.addAction(action)  # Add this
+        action = QAction("Classification", self)
+        self._actions[action] = ClassificationNode
+        menu_1C.addAction(action)
+        action = QAction("Deconvolution", self)
+        self._actions[action] = DeconvolutionNode
         menu_1C.addAction(action)
 
 
