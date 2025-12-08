@@ -2,7 +2,7 @@
   "Workflows": {
     "Workflow 0": {
       "nodes": {
-        "48b6f952-08d6-4dcd-8444-0a7b311b43c9": {
+        "340d4393-5be9-48eb-b5b3-0f11ad5a38a3": {
           "node": {
             "node_type": "SourceNode",
             "params": {
@@ -13,10 +13,10 @@
               null
             ]
           },
-          "x": -820.0,
-          "y": 394.0
+          "x": -439.0,
+          "y": 212.0
         },
-        "e7dfa8ae-fe27-4536-b418-d6c9f6d62ab9": {
+        "e21f07c4-d031-4632-923d-26cae9041f89": {
           "node": {
             "node_type": "MinNode",
             "params": {},
@@ -25,10 +25,10 @@
               null
             ]
           },
-          "x": -634.0,
-          "y": 131.0
+          "x": -208.0,
+          "y": 130.0
         },
-        "0cf78f1a-ac9b-4f94-9d86-504aa112a9af": {
+        "0c614782-df86-4a79-8c09-2aab0b9bbe3c": {
           "node": {
             "node_type": "MinNode",
             "params": {},
@@ -37,10 +37,10 @@
               null
             ]
           },
-          "x": -574.0,
-          "y": 321.0
+          "x": -205.0,
+          "y": 324.0
         },
-        "f8c2142a-bc07-4cb4-9275-fd0c8300e5f7": {
+        "77f02cf0-04c0-4aa9-b064-abb760942c20": {
           "node": {
             "node_type": "MaxNode",
             "params": {},
@@ -49,10 +49,10 @@
               null
             ]
           },
-          "x": -431.0,
-          "y": 53.0
+          "x": -33.0,
+          "y": 130.0
         },
-        "f113a3db-8282-4411-8e18-b0523dca0e72": {
+        "1cd1bdcb-4de7-47f2-a6b3-039fd602dc40": {
           "node": {
             "node_type": "SourceNode",
             "params": {
@@ -63,10 +63,10 @@
               null
             ]
           },
-          "x": -367.0,
-          "y": 283.0
+          "x": 171.0,
+          "y": 349.0
         },
-        "be53b824-55f7-4e1e-aeb9-bc00c5523057": {
+        "18012384-7761-4fa4-a1f3-833c95f04b9f": {
           "node": {
             "node_type": "ABSDiffNode",
             "params": {},
@@ -75,24 +75,10 @@
               null
             ]
           },
-          "x": -239.0,
-          "y": 86.0
+          "x": 361.0,
+          "y": 198.0
         },
-        "89a36ae1-0032-43d7-b0e3-175e36478112": {
-          "node": {
-            "node_type": "ThresholdNode",
-            "params": {},
-            "external_inputs": [
-              null,
-              10.0,
-              null,
-              "Binary"
-            ]
-          },
-          "x": 5.0,
-          "y": 0.0
-        },
-        "16aac3c8-ee80-4837-80c5-a3c304390374": {
+        "c237de40-13a6-4eca-9b96-41d68eaf9967": {
           "node": {
             "node_type": "InvertNode",
             "params": {},
@@ -111,160 +97,47 @@
               null,
               null,
               null,
-              null,
-              null,
-              null,
-              null,
-              null
+              "Triangle"
             ]
           },
-          "x": 578.0,
-          "y": 50.0
-        },
-        "fe00140b-58d6-4acd-8734-ed3bcf878344": {
-          "node": {
-            "node_type": "SaveContourCropsNode",
-            "params": {},
-            "external_inputs": [
-              null,
-              null,
-              null,
-              100
-            ]
-          },
-          "x": 778.0,
-          "y": 121.0
-        },
-        "470c0a6d-0980-4e49-a9cc-3bc9a00b968e": {
-          "node": {
-            "node_type": "InvertNode",
-            "params": {},
-            "external_inputs": [
-              null
-            ]
-          },
-          "x": -62.0,
-          "y": 350.0
-        },
-        "556247aa-badb-4a64-addc-7fe0cea1eb13": {
-          "node": {
-            "node_type": "ClassificationNode",
-            "params": {},
-            "external_inputs": [
-              null,
-              null,
-              null,
-              null,
-              null
-            ]
-          },
-          "x": 1266.0,
-          "y": 113.0
-        },
-        "45287df6-986e-449b-b795-59d148d151eb": {
-          "node": {
-            "node_type": "DeconvolutionNode",
-            "params": {},
-            "external_inputs": [
-              null,
-              1,
-              1.0
-            ]
-          },
-          "x": 119.0,
-          "y": 328.0
-        },
-        "357d88d4-e581-4545-a5c3-b5034fbe7759": {
-          "node": {
-            "node_type": "InvertNode",
-            "params": {},
-            "external_inputs": [
-              null
-            ]
-          },
-          "x": 338.0,
-          "y": 388.0
+          "x": 586.0,
+          "y": 130.0
         }
       },
       "connections": {
-        "e7dfa8ae-fe27-4536-b418-d6c9f6d62ab9": [
+        "e21f07c4-d031-4632-923d-26cae9041f89": [
           [
             0,
-            "48b6f952-08d6-4dcd-8444-0a7b311b43c9",
+            "340d4393-5be9-48eb-b5b3-0f11ad5a38a3",
             0
           ],
           [
             1,
-            "48b6f952-08d6-4dcd-8444-0a7b311b43c9",
+            "340d4393-5be9-48eb-b5b3-0f11ad5a38a3",
             1
           ]
         ],
-        "0cf78f1a-ac9b-4f94-9d86-504aa112a9af": [
+        "0c614782-df86-4a79-8c09-2aab0b9bbe3c": [
           [
             0,
-            "48b6f952-08d6-4dcd-8444-0a7b311b43c9",
+            "340d4393-5be9-48eb-b5b3-0f11ad5a38a3",
             2
           ],
           [
             1,
-            "48b6f952-08d6-4dcd-8444-0a7b311b43c9",
+            "340d4393-5be9-48eb-b5b3-0f11ad5a38a3",
             3
           ]
         ],
-        "f8c2142a-bc07-4cb4-9275-fd0c8300e5f7": [
+        "77f02cf0-04c0-4aa9-b064-abb760942c20": [
           [
             0,
-            "e7dfa8ae-fe27-4536-b418-d6c9f6d62ab9",
+            "e21f07c4-d031-4632-923d-26cae9041f89",
             0
           ],
           [
             1,
-            "0cf78f1a-ac9b-4f94-9d86-504aa112a9af",
-            0
-          ]
-        ],
-        "be53b824-55f7-4e1e-aeb9-bc00c5523057": [
-          [
-            0,
-            "f8c2142a-bc07-4cb4-9275-fd0c8300e5f7",
-            0
-          ],
-          [
-            1,
-            "f113a3db-8282-4411-8e18-b0523dca0e72",
-            0
-          ]
-        ],
-        "89a36ae1-0032-43d7-b0e3-175e36478112": [
-          [
-            0,
-            "be53b824-55f7-4e1e-aeb9-bc00c5523057",
-            0
-          ]
-        ],
-        "16aac3c8-ee80-4837-80c5-a3c304390374": [
-          [
-            0,
-            "89a36ae1-0032-43d7-b0e3-175e36478112",
-            0
-          ]
-        ],
-        "4e249d60-8335-42ca-aad8-ff95f21383db": [
-          [
-            0,
-            "89a36ae1-0032-43d7-b0e3-175e36478112",
-            0
-          ],
-          [
-            1,
-            "f113a3db-8282-4411-8e18-b0523dca0e72",
-            0
-          ]
-        ],
-        "fe00140b-58d6-4acd-8734-ed3bcf878344": [
-          [
-            0,
-            "45287df6-986e-449b-b795-59d148d151eb",
+            "0c614782-df86-4a79-8c09-2aab0b9bbe3c",
             0
           ],
           [
@@ -273,17 +146,15 @@
             2
           ]
         ],
-        "470c0a6d-0980-4e49-a9cc-3bc9a00b968e": [
+        "18012384-7761-4fa4-a1f3-833c95f04b9f": [
           [
             0,
-            "be53b824-55f7-4e1e-aeb9-bc00c5523057",
+            "77f02cf0-04c0-4aa9-b064-abb760942c20",
             0
-          ]
-        ],
-        "556247aa-badb-4a64-addc-7fe0cea1eb13": [
+          ],
           [
-            0,
-            "45287df6-986e-449b-b795-59d148d151eb",
+            1,
+            "1cd1bdcb-4de7-47f2-a6b3-039fd602dc40",
             0
           ],
           [
@@ -292,17 +163,10 @@
             1
           ]
         ],
-        "45287df6-986e-449b-b795-59d148d151eb": [
+        "c237de40-13a6-4eca-9b96-41d68eaf9967": [
           [
             0,
-            "470c0a6d-0980-4e49-a9cc-3bc9a00b968e",
-            0
-          ]
-        ],
-        "357d88d4-e581-4545-a5c3-b5034fbe7759": [
-          [
-            0,
-            "45287df6-986e-449b-b795-59d148d151eb",
+            "18012384-7761-4fa4-a1f3-833c95f04b9f",
             0
           ]
         ]
