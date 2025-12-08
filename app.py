@@ -19,8 +19,8 @@ def main():
     # Create an instance of the main window
     main_window = QMainWindow()
     main_window.setWindowTitle("CV Image Sequencer")
-    main_window.setGeometry(0, 0, 1920, 1080)
-    main_window.setFixedSize(1920, 1080)
+    main_window.setGeometry(0, 0, 1400, 720)
+    #main_window.setFixedSize(1920, 1080)
     # main_window.setGeometry(330, 60, 1260, 960)
 
 

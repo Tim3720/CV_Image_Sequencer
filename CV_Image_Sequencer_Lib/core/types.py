@@ -110,3 +110,17 @@ class Int(Scalar):
 @dataclass
 class Float(Scalar):
     value: float
+
+@dataclass
+class String(Scalar):
+    value: str
+
+@dataclass
+class Contours(IOType):
+    value: Optional[list]
+    
+    @override
+    def value_okay(self, other: "IOType") -> bool:
+        if not isinstance(other, Contours):
+            return False
+        return True

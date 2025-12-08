@@ -80,7 +80,18 @@
         },
         "c237de40-13a6-4eca-9b96-41d68eaf9967": {
           "node": {
-            "node_type": "ThresholdNode",
+            "node_type": "InvertNode",
+            "params": {},
+            "external_inputs": [
+              null
+            ]
+          },
+          "x": 215.0,
+          "y": 193.0
+        },
+        "4e249d60-8335-42ca-aad8-ff95f21383db": {
+          "node": {
+            "node_type": "FindContoursNode",
             "params": {},
             "external_inputs": [
               null,
@@ -128,6 +139,11 @@
             1,
             "0c614782-df86-4a79-8c09-2aab0b9bbe3c",
             0
+          ],
+          [
+            1,
+            "4e249d60-8335-42ca-aad8-ff95f21383db",
+            2
           ]
         ],
         "18012384-7761-4fa4-a1f3-833c95f04b9f": [
@@ -140,6 +156,11 @@
             1,
             "1cd1bdcb-4de7-47f2-a6b3-039fd602dc40",
             0
+          ],
+          [
+            1,
+            "fe00140b-58d6-4acd-8734-ed3bcf878344",
+            1
           ]
         ],
         "c237de40-13a6-4eca-9b96-41d68eaf9967": [

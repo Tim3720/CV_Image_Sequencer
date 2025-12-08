@@ -17,7 +17,7 @@ class CVImageSequencerWidget(QWidget):
         app.aboutToQuit.connect(self.on_quit)
 
         self.init_ui()
-        # self.source_manager.load_directory("/home/tim/Documents/Arbeit/TestData/HighSampling/")
+        self.source_manager.load_directory("/Users/vdausmann/data/20241106-1526_SO308_1-5-1_PISCO2_png/selection")
 
     def init_ui(self):
         self.main_layout = QHBoxLayout(self)
